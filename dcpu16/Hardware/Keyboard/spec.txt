@@ -1,0 +1,12 @@
+﻿Keyboard for DCPU-16
+
+Interrupts:
+
+A = 0:
+	Removes character from input buffer	and writes
+	it to register C, or 0 if buffer is empty.
+A = 1:
+	If input buffer is empty, writes 0 to register
+	C, else writes 1 to register C
+A = 2:
+	Clears input buffer

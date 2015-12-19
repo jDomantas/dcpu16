@@ -1,0 +1,12 @@
+﻿Text output for DCPU-16
+
+Interrupts:
+	
+A = 0:
+	Print character stored in C
+	Available symbol codes: [32, 126], 9, 10; if C is not one
+	of those, nothing is printed
+A = 1:
+	Moves cursor by one symbol to the left and deletes last
+	character. Nothing is done if cursor is on the leftmost
+	position in current line.
