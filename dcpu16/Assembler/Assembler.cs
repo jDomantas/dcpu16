@@ -521,7 +521,7 @@ namespace dcpu16.Assembler
                 yield return error;
 
             foreach (var label in ForwardLinks.Keys)
-                yield return $"Undefined labet: {label}";
+                yield return $"Undefined label: {label}";
 
             yield break;
         }

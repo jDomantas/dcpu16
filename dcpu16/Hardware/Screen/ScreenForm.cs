@@ -155,6 +155,7 @@ namespace dcpu16.Hardware.Screen
 
             if (Keyboard != null)
             {
+                PreviewKeyDown += ScreenForm_PreviewKeyDown;
                 KeyDown += ScreenForm_KeyDown;
                 KeyUp += ScreenForm_KeyUp;
                 KeyPress += ScreenForm_KeyPress;
@@ -166,6 +167,19 @@ namespace dcpu16.Hardware.Screen
             NeedsRefresh = true;
 
             Show();
+        }
+
+        private void ScreenForm_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
+        {
+            switch (e.KeyCode)
+            {
+                case Keys.Up:
+                case Keys.Down:
+                case Keys.Left:
+                case Keys.Right:
+                    e.IsInputKey = true;
+                    break;
+            }
         }
 
         private void ScreenForm_KeyPress(object sender, KeyPressEventArgs e)
@@ -184,8 +198,17 @@ namespace dcpu16.Hardware.Screen
 
         private void ScreenForm_KeyDown(object sender, KeyEventArgs e)
         {
+            switch (e.KeyCode)
+            {
+                case Keys.Up: Keyboard.EnqueueKey(0x80); break;
+                case Keys.Right: Keyboard.EnqueueKey(0x81); break;
+                case Keys.Down: Keyboard.EnqueueKey(0x82); break;
+                case Keys.Left: Keyboard.EnqueueKey(0x83); break;
+            }
+
             if (e.KeyValue < 128)
                 Keyboard.SetKeyStatus((ushort)e.KeyValue, true);
+
         }
 
         private void DisplayPanel_Paint(object sender, PaintEventArgs e)
