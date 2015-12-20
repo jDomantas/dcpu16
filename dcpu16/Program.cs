@@ -85,7 +85,12 @@ namespace dcpu16
                 }
 #endif
 
-                Dcpu emulator = new Dcpu(new IHardware[2] { new Hardware.Keyboard.KeyboardDevice(), new Hardware.TextTerminal.TextTeminalDevice() });
+                var keyboard = new Hardware.Keyboard.KeyboardDevice();
+                Dcpu emulator = new Dcpu(new IHardware[2] 
+                {
+                    keyboard,
+                    new Hardware.Screen.ScreenForm(keyboard)
+                });
                 for (int i = 0; i < memory.Length; i++)
                     emulator.Memory[i] = memory[i];
 #if DEBUG

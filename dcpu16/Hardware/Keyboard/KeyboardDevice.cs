@@ -10,10 +10,12 @@ namespace dcpu16.Hardware.Keyboard
     class KeyboardDevice : IHardware
     {
         private Queue<ushort> KeyBuffer;
+        private Dictionary<ushort, bool> KeyStatus;
 
         public KeyboardDevice()
         {
             KeyBuffer = new Queue<ushort>();
+            KeyStatus = new Dictionary<ushort, bool>();
         }
 
         public uint GetHardwareID()
@@ -53,18 +55,37 @@ namespace dcpu16.Hardware.Keyboard
             {
                 KeyBuffer.Clear();
             }
+            else if (dcpu.A == 3)
+            {
+                if (KeyStatus.ContainsKey(dcpu.C) && KeyStatus[dcpu.C])
+                    dcpu.A = 1;
+                else
+                    dcpu.A = 0;
+            }
         }
 
-        public void Update()
+        public void UpdateInternal()
         {
-            if (Console.KeyAvailable)
-            {
-                var key = Console.ReadKey(true);
-                if (key.KeyChar == 13) // change '\r' to '\n' to make more sense
-                    KeyBuffer.Enqueue(10);
-                else
-                    KeyBuffer.Enqueue(key.KeyChar);
-            }
+            
+        }
+
+        public void EnqueueKey(ushort key)
+        {
+            if (KeyBuffer.Count < 256)
+                KeyBuffer.Enqueue(key);
+        }
+
+        public void SetKeyStatus(ushort key, bool down)
+        {
+            if (KeyStatus.ContainsKey(key))
+                KeyStatus[key] = down;
+            else
+                KeyStatus.Add(key, down);
+        }
+
+        public void Shutdown()
+        {
+
         }
     }
 }

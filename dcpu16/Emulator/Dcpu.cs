@@ -487,13 +487,16 @@ namespace dcpu16.Emulator
                 }
 
                 for (int i = 0; i < Devices.Length; i++)
-                    Devices[i].Update();
+                    Devices[i].UpdateInternal();
 
                 while (CycleDebt <= 0 && !Halted)
                     ExecuteInstruction();
 
-                Thread.Sleep(5);
+                Thread.Sleep(10);
             }
+
+            for (int i = 0; i < Devices.Length; i++)
+                Devices[i].Shutdown();
         }
     }
 }

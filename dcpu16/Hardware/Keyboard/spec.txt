@@ -1,5 +1,9 @@
 ﻿Keyboard for DCPU-16
 
+Hardware ID:		0x4B455953
+Hardware version:	1
+Manufacturer ID:	0x44464C54
+
 Interrupts:
 
 A = 0:
@@ -10,3 +14,6 @@ A = 1:
 	C, else writes 1 to register C
 A = 2:
 	Clears input buffer
+A = 3:
+	If key written in register C is pressed, writes
+	1 to register A, else writes 0 to register A.

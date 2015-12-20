@@ -35,6 +35,8 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -48,7 +50,15 @@
     <Compile Include="Emulator\Dcpu.cs" />
     <Compile Include="Hardware\IHardware.cs" />
     <Compile Include="Hardware\Keyboard\KeyboardDevice.cs" />
-    <Compile Include="Hardware\TextTerminal\TextTeminalDevice.cs" />
+    <Compile Include="Hardware\Screen\DoubleBufferedPanel.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="Hardware\Screen\ScreenForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Hardware\Screen\ScreenForm.Designer.cs">
+      <DependentUpon>ScreenForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -57,9 +67,13 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Hardware\Keyboard\spec.txt" />
-    <Content Include="Hardware\TextTerminal\spec.txt" />
+    <Content Include="Hardware\Screen\spec.txt" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <EmbeddedResource Include="Hardware\Screen\ScreenForm.resx">
+      <DependentUpon>ScreenForm.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -13,6 +13,7 @@ namespace dcpu16.Hardware
         uint GetHardwareID();
         ushort GetHardwareVersion();
         uint GetManufacturer();
-        void Update();
+        void UpdateInternal();
+        void Shutdown();
     }
 }

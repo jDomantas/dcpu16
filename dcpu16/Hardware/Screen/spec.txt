@@ -1,0 +1,45 @@
+﻿Video display for DCPU-16
+
+Features:
+* 192x128 resolution
+* Terminal, text, and graphical display modes
+* Displays 24x16 character terminal in text and terminal modes
+* Displays 24x16 tiles in graphical mode, and up to 16 sprites (4 colors per tile/sprite)
+
+Hardware ID:		0x5644454F
+Hardware version:	1
+Manufacturer ID:	0x44464C54
+
+Interrupts:
+
+A = 0:
+	Sets current mode to B:
+		0 to turn off
+		1 for terminal mode
+		2 for text mode
+		3 for graphical mode
+A = 1:
+	If B is 0, disables text colors, otherwise enables,
+	and refreshes the screen.
+	(for text and terminal modes only).
+A = 2:
+	(Terminal only)
+	Writes character in C to the screen.
+	If colors are enabled:
+		(C >> 12) & F	- background color
+		(C >> 8) & F	- foreground (font) color
+A = 3:
+	(Terminal only)
+	Deletes character to the left of the cursor and moves
+	cursor one position to the left. Nothing happens if
+	cursor is already at the leftmost position in current
+	line.
+A = 4:
+	(Text only)
+	Copies memory block [B, B + 24*16) to internal memory
+	and refreshes the screen. High 8 bits specify color (if enabled).
+A = 5:
+	(Text only)
+	Sets character at (X, Y) to C, and refreshes the screen.
+
+Graphical mode is not yet implemented
