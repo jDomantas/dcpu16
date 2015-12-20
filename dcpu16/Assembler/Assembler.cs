@@ -11,7 +11,7 @@ namespace dcpu16.Assembler
         private Dictionary<string, List<int>> ForwardLinks;
         private List<string> CurrentErrors;
 
-        private Dictionary<string, int> InstructionCodes;
+        private Dictionary<string, Action<string, string[]>> Instructions;
 
         private List<ushort> MemoryDump;
 
@@ -22,52 +22,51 @@ namespace dcpu16.Assembler
             CurrentErrors = new List<string>();
             MemoryDump = new List<ushort>();
 
-            InstructionCodes = new Dictionary<string, int>()
+            Instructions = new Dictionary<string, Action<string, string[]>>()
             {
-                ["SET"] = 0x01,
-                ["MOV"] = 0x01, // not specified in standard
-                ["ADD"] = 0x02,
-                ["SUB"] = 0x03,
-                ["MUL"] = 0x04,
-                ["MLI"] = 0x05,
-                ["DIV"] = 0x06,
-                ["DVI"] = 0x07,
-                ["MOD"] = 0x08,
-                ["MDI"] = 0x09,
-                ["AND"] = 0x0A,
-                ["BOR"] = 0x0B,
-                ["XOR"] = 0x0C,
-                ["SHR"] = 0x0D,
-                ["ASR"] = 0x0E,
-                ["SHL"] = 0x0F,
-                ["IFB"] = 0x10,
-                ["IFC"] = 0x11,
-                ["IFE"] = 0x12,
-                ["IFN"] = 0x13,
-                ["IFG"] = 0x14,
-                ["IFA"] = 0x15,
-                ["IFL"] = 0x16,
-                ["IFU"] = 0x17,
-                ["ADX"] = 0x1A,
-                ["SBX"] = 0x1B,
-                ["STI"] = 0x1E,
-                ["STD"] = 0x1F,
+                ["SET"] = (line, operands) => AssembleSimpleInstruction(line, 0x01, operands),
+                ["ADD"] = (line, operands) => AssembleSimpleInstruction(line, 0x02, operands),
+                ["SUB"] = (line, operands) => AssembleSimpleInstruction(line, 0x03, operands),
+                ["MUL"] = (line, operands) => AssembleSimpleInstruction(line, 0x04, operands),
+                ["MLI"] = (line, operands) => AssembleSimpleInstruction(line, 0x05, operands),
+                ["DIV"] = (line, operands) => AssembleSimpleInstruction(line, 0x06, operands),
+                ["DVI"] = (line, operands) => AssembleSimpleInstruction(line, 0x07, operands),
+                ["MOD"] = (line, operands) => AssembleSimpleInstruction(line, 0x08, operands),
+                ["MDI"] = (line, operands) => AssembleSimpleInstruction(line, 0x09, operands),
+                ["AND"] = (line, operands) => AssembleSimpleInstruction(line, 0x0A, operands),
+                ["BOR"] = (line, operands) => AssembleSimpleInstruction(line, 0x0B, operands),
+                ["XOR"] = (line, operands) => AssembleSimpleInstruction(line, 0x0C, operands),
+                ["SHR"] = (line, operands) => AssembleSimpleInstruction(line, 0x0D, operands),
+                ["ASR"] = (line, operands) => AssembleSimpleInstruction(line, 0x0E, operands),
+                ["SHL"] = (line, operands) => AssembleSimpleInstruction(line, 0x0F, operands),
+                ["IFB"] = (line, operands) => AssembleSimpleInstruction(line, 0x10, operands),
+                ["IFC"] = (line, operands) => AssembleSimpleInstruction(line, 0x11, operands),
+                ["IFE"] = (line, operands) => AssembleSimpleInstruction(line, 0x12, operands),
+                ["IFN"] = (line, operands) => AssembleSimpleInstruction(line, 0x13, operands),
+                ["IFG"] = (line, operands) => AssembleSimpleInstruction(line, 0x14, operands),
+                ["IFA"] = (line, operands) => AssembleSimpleInstruction(line, 0x15, operands),
+                ["IFL"] = (line, operands) => AssembleSimpleInstruction(line, 0x16, operands),
+                ["IFU"] = (line, operands) => AssembleSimpleInstruction(line, 0x17, operands),
+                ["ADX"] = (line, operands) => AssembleSimpleInstruction(line, 0x1A, operands),
+                ["SBX"] = (line, operands) => AssembleSimpleInstruction(line, 0x1B, operands),
+                ["STI"] = (line, operands) => AssembleSimpleInstruction(line, 0x1E, operands),
+                ["STD"] = (line, operands) => AssembleSimpleInstruction(line, 0x1F, operands),
 
-                ["JSR"] = 0x101,
-                ["INT"] = 0x108,
-                ["IAG"] = 0x109,
-                ["IAS"] = 0x10A,
-                ["RFI"] = 0x10B,
-                ["IAQ"] = 0x10C,
-                ["HWN"] = 0x110,
-                ["HWQ"] = 0x111,
-                ["HWI"] = 0x112,
+                ["JSR"] = (line, operands) => AssembleSpecialInstruction(line, 0x01 << 5, operands),
+                ["INT"] = (line, operands) => AssembleSpecialInstruction(line, 0x08 << 5, operands),
+                ["IAG"] = (line, operands) => AssembleSpecialInstruction(line, 0x09 << 5, operands),
+                ["IAS"] = (line, operands) => AssembleSpecialInstruction(line, 0x0A << 5, operands),
+                ["RFI"] = (line, operands) => AssembleSpecialInstruction(line, 0x0B << 5, operands),
+                ["IAQ"] = (line, operands) => AssembleSpecialInstruction(line, 0x0C << 5, operands),
+                ["HWN"] = (line, operands) => AssembleSpecialInstruction(line, 0x10 << 5, operands),
+                ["HWQ"] = (line, operands) => AssembleSpecialInstruction(line, 0x11 << 5, operands),
+                ["HWI"] = (line, operands) => AssembleSpecialInstruction(line, 0x12 << 5, operands),
+
+                ["DAT"] = (line, operands) => AssembleData(line, operands),
                 
-                ["DAT"] = 0x201,
-
-                // not in standart, compiles to 0x0000
-                // which is invalid instruction, thus halts
-                ["HLT"] = 0x301,
+                // syntaxic sugar
+                ["JMP"] = (line, operands) => AssembleSpecialInstruction(line, 0x381, operands),
+                ["HLT"] = (line, operands) => AssembleNoOperandInstruction(line, 0, operands),
             };
         }
 
@@ -124,7 +123,7 @@ namespace dcpu16.Assembler
             else
                 name = instr.Substring(0, 3).ToUpper();
 
-            if (!InstructionCodes.ContainsKey(name))
+            if (!Instructions.ContainsKey(name))
             {
                 CurrentErrors.Add($"Invalid instruction: {name}");
                 return;
@@ -141,54 +140,8 @@ namespace dcpu16.Assembler
                 }
             }
             
-            int instructionCode = InstructionCodes[name];
-
-            if (instructionCode >= 0x300)
-            {
-                // HLT instruction, no operands
-                if (operands.Length != 1 || operands[0].Length != 0)
-                {
-                    CurrentErrors.Add($"Expected zero operands: {instr}");
-                    return;
-                }
-
-                MemoryDump.Add(0);
-            }
-            else if (instructionCode >= 0x200)
-            {
-                // DAT instruction, simply flush all operands
-                for (int i = 0; i < operands.Length; i++)
-                    CompileData(operands[i]);
-            }
-            else if (instructionCode >= 0x100)
-            {
-                // special instruction, one operand
-                if (operands.Length != 1)
-                {
-                    CurrentErrors.Add($"Expected one operand: {instr}");
-                    return;
-                }
-
-                var operand = CompileOperand(operands[0], 1, true);
-                MemoryDump.Add((ushort)(((instructionCode & 0x1F) << 5) | (operand.Item1 << 10)));
-                if (operand.Item2 != -1)
-                    MemoryDump.Add((ushort)operand.Item2);
-            }
-            else
-            {
-                // simple instruction, two operands
-                if (operands.Length != 2)
-                {
-                    CurrentErrors.Add($"Expected one operand: {instr}");
-                    return;
-                }
-
-                var operandB = CompileOperand(operands[0], 1);
-                var operandA = CompileOperand(operands[1], operandB.Item2 == -1 ? 1 : 2, true);
-                MemoryDump.Add((ushort)(instructionCode | (operandB.Item1 << 5) | (operandA.Item1 << 10)));
-                if (operandB.Item2 != -1) MemoryDump.Add((ushort)operandB.Item2);
-                if (operandA.Item2 != -1) MemoryDump.Add((ushort)operandA.Item2);
-            }
+            var instructionHandler = Instructions[name];
+            instructionHandler(instr, operands);
         }
 
         private void CompileData(string data)
@@ -618,6 +571,52 @@ namespace dcpu16.Assembler
             }
 
             return result.ToArray();
+        }
+
+        private void AssembleSimpleInstruction(string line, ushort opCode, string[] operands)
+        {
+            if (operands.Length != 2)
+            {
+                CurrentErrors.Add($"Expected one operand: {line}");
+                return;
+            }
+
+            var operandB = CompileOperand(operands[0], 1);
+            var operandA = CompileOperand(operands[1], operandB.Item2 == -1 ? 1 : 2, true);
+            MemoryDump.Add((ushort)(opCode | (operandB.Item1 << 5) | (operandA.Item1 << 10)));
+            if (operandB.Item2 != -1) MemoryDump.Add((ushort)(operandB.Item2 & 0xFFFF));
+            if (operandA.Item2 != -1) MemoryDump.Add((ushort)(operandA.Item2 & 0xFFFF));
+        }
+
+        private void AssembleSpecialInstruction(string line, ushort opCode, string[] operands)
+        {
+            if (operands.Length != 1)
+            {
+                CurrentErrors.Add($"Expected one operand: {line}");
+                return;
+            }
+
+            var operand = CompileOperand(operands[0], 1, true);
+            MemoryDump.Add((ushort)(opCode | (operand.Item1 << 10)));
+            if (operand.Item2 != -1)
+                MemoryDump.Add((ushort)(operand.Item2 & 0xFFFF));
+        }
+
+        private void AssembleData(string line, string[] operands)
+        {
+            for (int i = 0; i < operands.Length; i++)
+                CompileData(operands[i]);
+        }
+
+        private void AssembleNoOperandInstruction(string line, ushort opCode, string[] operands)
+        {
+            if (operands.Length != 1 || operands[0].Length != 0)
+            {
+                CurrentErrors.Add($"Expected zero operands: {line}");
+                return;
+            }
+
+            MemoryDump.Add(opCode);
         }
     }
 }
