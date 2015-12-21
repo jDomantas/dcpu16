@@ -87,5 +87,10 @@ namespace dcpu16.Hardware.Keyboard
         {
 
         }
+
+        public override string ToString()
+        {
+            return "Keyboard";
+        }
     }
 }

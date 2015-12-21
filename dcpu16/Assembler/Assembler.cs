@@ -523,6 +523,9 @@ namespace dcpu16.Assembler
             foreach (var label in ForwardLinks.Keys)
                 yield return $"Undefined label: {label}";
 
+            if (MemoryDump.Count > 65536)
+                yield return $"Memory image larger than 65536 words: {MemoryDump.Count}";
+
             yield break;
         }
 

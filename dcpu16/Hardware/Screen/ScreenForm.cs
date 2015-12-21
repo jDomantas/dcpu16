@@ -131,7 +131,7 @@ namespace dcpu16.Hardware.Screen
         private const int TextWidth = 24, TextHeight = 16;
         private const int ScreenWidth = TextWidth * 8, ScreenHeight = TextHeight * 8;
 
-        private KeyboardDevice Keyboard;
+        private List<KeyboardDevice> Keyboards;
         private Bitmap Display;
         private DisplayMode CurrentDisplayMode;
         private bool TextColorEnabled;
@@ -140,26 +140,23 @@ namespace dcpu16.Hardware.Screen
         private byte[] DisplayData;
         private bool NeedsRefresh;
 
-        public ScreenForm(KeyboardDevice keyboard)
+        public ScreenForm(List<KeyboardDevice> keyboards)
         {
             InitializeComponent();
 
             CurrentDisplayMode = DisplayMode.Off;
             TextColorEnabled = false;
-            Keyboard = keyboard;
+            Keyboards = keyboards;
             Display = new Bitmap(ScreenWidth, ScreenHeight, PixelFormat.Format32bppArgb);
-            
+
             InternalMemory = new ushort[24 * 16];
 
             DisplayData = new byte[4 * ScreenWidth * ScreenHeight];
 
-            if (Keyboard != null)
-            {
-                PreviewKeyDown += ScreenForm_PreviewKeyDown;
-                KeyDown += ScreenForm_KeyDown;
-                KeyUp += ScreenForm_KeyUp;
-                KeyPress += ScreenForm_KeyPress;
-            }
+            PreviewKeyDown += ScreenForm_PreviewKeyDown;
+            KeyDown += ScreenForm_KeyDown;
+            KeyUp += ScreenForm_KeyUp;
+            KeyPress += ScreenForm_KeyPress;
 
             displayPanel.Paint += DisplayPanel_Paint;
 
@@ -184,31 +181,39 @@ namespace dcpu16.Hardware.Screen
 
         private void ScreenForm_KeyPress(object sender, KeyPressEventArgs e)
         {
-            if (e.KeyChar == 13)
-                Keyboard.EnqueueKey(10);
-            else
-                Keyboard.EnqueueKey(e.KeyChar);
+            for (int i = 0; i < Keyboards.Count; i++)
+            {
+                if (e.KeyChar == 13)
+                    Keyboards[i].EnqueueKey(10);
+                else
+                    Keyboards[i].EnqueueKey(e.KeyChar);
+            }
         }
 
         private void ScreenForm_KeyUp(object sender, KeyEventArgs e)
         {
-            if (e.KeyValue < 128)
-                Keyboard.SetKeyStatus((ushort)e.KeyValue, false);
+            for (int i = 0; i < Keyboards.Count; i++)
+            {
+                if (e.KeyValue < 128)
+                    Keyboards[i].SetKeyStatus((ushort)e.KeyValue, false);
+            }
         }
 
         private void ScreenForm_KeyDown(object sender, KeyEventArgs e)
         {
-            switch (e.KeyCode)
+            for (int i = 0; i < Keyboards.Count; i++)
             {
-                case Keys.Up: Keyboard.EnqueueKey(0x80); break;
-                case Keys.Right: Keyboard.EnqueueKey(0x81); break;
-                case Keys.Down: Keyboard.EnqueueKey(0x82); break;
-                case Keys.Left: Keyboard.EnqueueKey(0x83); break;
+                switch (e.KeyCode)
+                {
+                    case Keys.Up: Keyboards[i].EnqueueKey(0x80); break;
+                    case Keys.Right: Keyboards[i].EnqueueKey(0x81); break;
+                    case Keys.Down: Keyboards[i].EnqueueKey(0x82); break;
+                    case Keys.Left: Keyboards[i].EnqueueKey(0x83); break;
+                }
+
+                if (e.KeyValue < 128)
+                    Keyboards[i].SetKeyStatus((ushort)e.KeyValue, true);
             }
-
-            if (e.KeyValue < 128)
-                Keyboard.SetKeyStatus((ushort)e.KeyValue, true);
-
         }
 
         private void DisplayPanel_Paint(object sender, PaintEventArgs e)
@@ -430,6 +435,22 @@ namespace dcpu16.Hardware.Screen
         public void Shutdown()
         {
             Close();
+        }
+
+        public override string ToString()
+        {
+            return "Screen";
+        }
+
+        private const int CP_NOCLOSE_BUTTON = 0x200;
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                CreateParams myCp = base.CreateParams;
+                myCp.ClassStyle = myCp.ClassStyle | CP_NOCLOSE_BUTTON;
+                return myCp;
+            }
         }
     }
 }
