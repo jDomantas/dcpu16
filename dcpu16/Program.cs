@@ -1,12 +1,13 @@
 ﻿using dcpu16.Assembler;
 using dcpu16.Emulator;
 using dcpu16.Hardware;
+using dcpu16.Hardware.ExternalDisk;
 using dcpu16.Hardware.Keyboard;
 using dcpu16.Hardware.Screen;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;  
+using System.Linq;
 
 namespace dcpu16
 {
@@ -119,6 +120,7 @@ namespace dcpu16
             {
                 if (Devices[i] == "screen") hardware[i] = new ScreenForm(keyboards);
                 else if (Devices[i] == "keyboard") hardware[i] = new KeyboardDevice();
+                else if (Devices[i] == "harddrive") hardware[i] = new HardDrive();
 
                 if (Devices[i] == "keyboard") keyboards.Add((KeyboardDevice)hardware[i]);
             }
@@ -145,6 +147,8 @@ namespace dcpu16
                 Devices.Add("screen");
             else if (args[1] == "keyboard")
                 Devices.Add("keyboard");
+            else if (args[1] == "harddrive")
+                Devices.Add("harddrive");
             else
                 Console.WriteLine($"Unknown device: {args[1]}");
         }
@@ -189,6 +193,7 @@ namespace dcpu16
             Console.WriteLine("All available devices:");
             Console.WriteLine("* Keyboard");
             Console.WriteLine("* Screen");
+            Console.WriteLine("* Harddrive");
         }
 
         private void ClearDevices(string[] args)

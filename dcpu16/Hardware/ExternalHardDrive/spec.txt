@@ -1,0 +1,22 @@
+﻿External hard disk for DCPU-16
+
+Hardware ID:		0x4449535B
+Hardware version:	1
+Manufacturer ID:	0x44464C54
+
+(uses file 'harddrive.dat')
+
+Disk size is 1 MB by default
+
+Interrupts:
+
+A = 0:
+	Returns size in words in X:Y
+A = 1:
+	Copies data from disk starting at address X:Y to
+	memory starting at address B. Copies a total of C
+	words. Out of bounds access in disk returns 0.
+A = 2:
+	Copies data from memory starting at address B to 
+	disk starting at address X:Y. Copies a total of C
+	words. Out of bounds writes in disk fail silently.
