@@ -29,6 +29,7 @@ namespace dcpu16
 
             Devices.Add("keyboard");
             Devices.Add("screen");
+            Devices.Add("harddrive");
         }
 
         private void RunProgram(string[] args)
