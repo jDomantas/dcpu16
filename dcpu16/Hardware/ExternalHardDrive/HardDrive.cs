@@ -18,7 +18,7 @@ namespace dcpu16.Hardware.ExternalDisk
                 byte[] data = File.ReadAllBytes("harddrive.dat");
                 for (int i = 0; i < Size; i++)
                     if (2 * i + 1 < data.Length)
-                        Memory[i] = (ushort)((data[i] << 8) | data[i + 1]);
+                        Memory[i] = (ushort)((data[2 * i] << 8) | data[2 * i + 1]);
             }
             catch (Exception)
             {

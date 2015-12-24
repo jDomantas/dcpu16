@@ -48,6 +48,7 @@
     <Compile Include="Assembler\Assembler.cs" />
     <Compile Include="Assembler\Disassembler.cs" />
     <Compile Include="Emulator\Dcpu.cs" />
+    <Compile Include="Hardware\ExternalHardDrive\HardDrive.cs" />
     <Compile Include="Hardware\IHardware.cs" />
     <Compile Include="Hardware\Keyboard\KeyboardDevice.cs" />
     <Compile Include="Hardware\Screen\DoubleBufferedPanel.cs">
@@ -66,6 +67,7 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Hardware\ExternalHardDrive\spec.txt" />
     <Content Include="Hardware\Keyboard\spec.txt" />
     <Content Include="Hardware\Screen\spec.txt" />
   </ItemGroup>
