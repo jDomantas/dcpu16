@@ -85,6 +85,9 @@ namespace dcpu16.Assembler
         
         private void AssembleLine(string line)
         {
+            // remove comment
+            line = SplitQuoted(line, ';')[0];
+
             string originalLine = line;
 
             string[] subStrings = SplitQuoted(line, ':');
@@ -112,9 +115,6 @@ namespace dcpu16.Assembler
 
         private void AssembleInstruction(string instr)
         {
-            // remove comment
-            instr = SplitQuoted(instr, ';')[0];
-
             if (instr.Length == 0) return;
             
             string name;
@@ -195,7 +195,7 @@ namespace dcpu16.Assembler
             else
             {
                 // number
-                int num = ParseNumber(data);
+                int num = ParseNumber(data.ToUpper());
                 if (num == -1)
                 {
                     CurrentErrors.Add($"Invalid number: {data}");
@@ -584,8 +584,8 @@ namespace dcpu16.Assembler
                 return;
             }
 
-            var operandB = CompileOperand(operands[0], 1);
-            var operandA = CompileOperand(operands[1], operandB.Item2 == -1 ? 1 : 2, true);
+            var operandB = CompileOperand(operands[0].ToUpper(), 1);
+            var operandA = CompileOperand(operands[1].ToUpper(), operandB.Item2 == -1 ? 1 : 2, true);
             MemoryDump.Add((ushort)(opCode | (operandB.Item1 << 5) | (operandA.Item1 << 10)));
             if (operandB.Item2 != -1) MemoryDump.Add((ushort)(operandB.Item2 & 0xFFFF));
             if (operandA.Item2 != -1) MemoryDump.Add((ushort)(operandA.Item2 & 0xFFFF));
