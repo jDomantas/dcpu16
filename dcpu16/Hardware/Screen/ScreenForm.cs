@@ -115,7 +115,7 @@ namespace dcpu16.Hardware.Screen
             0x7e80, 0xfe00, // U
             0x3ec0, 0x3e00, // V
             0xfe60, 0xfe00, // W
-            0xe610, 0xee00, // X
+            0xee10, 0xee00, // X
             0x0ef0, 0x0e00, // Y
             0xe292, 0x8e00, // Z
             0xfe82, 0x0000, // [
