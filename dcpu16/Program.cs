@@ -109,7 +109,7 @@ namespace dcpu16
             return asm.GetMemoryDump();
         }
 
-        static void RunEmulator(ushort[] memoryImage, List<string> hardware)
+        static void RunEmulator(ushort[] memoryImage, List<string> hardware, bool dumpregs)
         {
             if (hardware.Count == 0)
             {
@@ -175,6 +175,8 @@ namespace dcpu16
             try
             {
                 emulator.Run();
+                if (dumpregs)
+                    emulator.DumpRegisters();
             }
             catch (Exception e)
             {
@@ -248,18 +250,18 @@ namespace dcpu16
             }
         }
 
-        static void LoadBinary(string source, List<string> hardware)
+        static void LoadBinary(string source, List<string> hardware, bool dumpregs)
         {
             ushort[] file = LoadBinaryFile(source);
 
-            RunEmulator(file, hardware);
+            RunEmulator(file, hardware, dumpregs);
         }
 
-        static void RunProgram(string source, List<string> hardware)
+        static void RunProgram(string source, List<string> hardware, bool dumpregs)
         {
             ushort[] file = AssembleSource(source);
 
-            RunEmulator(file, hardware);
+            RunEmulator(file, hardware, dumpregs);
         }
 
         static void PrintHelp()
@@ -285,6 +287,9 @@ namespace dcpu16
             Console.WriteLine("        add hardware device (removes defaults), one of:");
             Console.WriteLine("        clock, keyboard, lem, floppy");
             Console.WriteLine("        specify floppy file with -d=floppy(file.dat)");
+            Console.WriteLine();
+            Console.WriteLine("    -dump");
+            Console.WriteLine("        dump registers after emulator halts");
             Environment.Exit(0);
         }
 
@@ -304,6 +309,7 @@ namespace dcpu16
                 disassemble = null, 
                 output = null;
             bool showHelp = false;
+            bool dumpRegisters = false;
 
             var options = new OptionSet() {
                 { "d=|device=", "add hardware device",
@@ -321,6 +327,8 @@ namespace dcpu16
                     r => run = r },
                 { "h|?|help",  "show this message and exit",
                     v => showHelp = v != null },
+                { "dump",  "dump registers after halted",
+                    v => dumpRegisters = v != null },
             };
             
             options.Parse(args);
@@ -349,17 +357,17 @@ namespace dcpu16
                 if (run != null || assemble != null || disassemble != null || output != null)
                     IncorrectUsage();
                 else
-                    LoadBinary(load, hardware);
+                    LoadBinary(load, hardware, dumpRegisters);
             }
             else if (run != null)
             {
                 if (load != null || assemble != null || disassemble != null || output != null)
                     IncorrectUsage();
                 else
-                    RunProgram(run, hardware);
+                    RunProgram(run, hardware, dumpRegisters);
             }
             else
-                PrintHelp();
+                IncorrectUsage();
 
 #if DEBUG
             Console.ReadKey();
