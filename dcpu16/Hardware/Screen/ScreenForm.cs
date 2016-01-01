@@ -202,6 +202,13 @@ namespace dcpu16.Hardware.Screen
                 case Keys.Down:
                 case Keys.Left:
                 case Keys.Right:
+                case Keys.ControlKey:
+                case Keys.ShiftKey:
+                case Keys.Delete:
+                case Keys.Enter:
+                case Keys.Back:
+                case Keys.Insert:
+                case Keys.Escape:
                     e.IsInputKey = true;
                     break;
             }
@@ -209,11 +216,11 @@ namespace dcpu16.Hardware.Screen
 
         private void ScreenForm_KeyPress(object sender, KeyPressEventArgs e)
         {
+            // visible symbols are handled sepparately because here
+            // modifiers (ctrl, shift) are automatically applied
             for (int i = 0; i < Keyboards.Count; i++)
             {
-                if (e.KeyChar == 13)
-                    Keyboards[i].EnqueueKey(10);
-                else
+                if (e.KeyChar >= 0x20 && e.KeyChar < 0x80)
                     Keyboards[i].EnqueueKey(e.KeyChar);
             }
         }
@@ -222,8 +229,24 @@ namespace dcpu16.Hardware.Screen
         {
             for (int i = 0; i < Keyboards.Count; i++)
             {
-                if (e.KeyValue < 128)
-                    Keyboards[i].SetKeyStatus((ushort)e.KeyValue, false);
+                switch (e.KeyCode)
+                {
+                    case Keys.Back: Keyboards[i].SetKeyStatus(0x10, false); break;
+                    case Keys.Enter: Keyboards[i].SetKeyStatus(0x11, false); break;
+                    case Keys.Insert: Keyboards[i].SetKeyStatus(0x12, false); break;
+                    case Keys.Delete: Keyboards[i].SetKeyStatus(0x13, false); break;
+                    case Keys.Escape: Keyboards[i].SetKeyStatus(0x14, false); break;
+                    case Keys.Up: Keyboards[i].SetKeyStatus(0x80, false); break;
+                    case Keys.Right: Keyboards[i].SetKeyStatus(0x81, false); break;
+                    case Keys.Down: Keyboards[i].SetKeyStatus(0x82, false); break;
+                    case Keys.Left: Keyboards[i].SetKeyStatus(0x83, false); break;
+                    case Keys.ShiftKey: Keyboards[i].SetKeyStatus(0x90, false); break;
+                    case Keys.ControlKey: Keyboards[i].SetKeyStatus(0x91, false); break;
+                    default:
+                        if (e.KeyValue >= 0x20 && e.KeyValue < 0x80)
+                            Keyboards[i].SetKeyStatus((ushort)e.KeyValue, false);
+                        break;
+                }
             }
         }
 
@@ -233,14 +256,22 @@ namespace dcpu16.Hardware.Screen
             {
                 switch (e.KeyCode)
                 {
-                    case Keys.Up: Keyboards[i].EnqueueKey(0x80); break;
-                    case Keys.Right: Keyboards[i].EnqueueKey(0x81); break;
-                    case Keys.Down: Keyboards[i].EnqueueKey(0x82); break;
-                    case Keys.Left: Keyboards[i].EnqueueKey(0x83); break;
+                    case Keys.Back: Keyboards[i].SetKeyStatus(0x10, true); Keyboards[i].EnqueueKey(0x10); break;
+                    case Keys.Enter: Keyboards[i].SetKeyStatus(0x11, true); Keyboards[i].EnqueueKey(0x11); break;
+                    case Keys.Insert: Keyboards[i].SetKeyStatus(0x12, true); Keyboards[i].EnqueueKey(0x12); break;
+                    case Keys.Delete: Keyboards[i].SetKeyStatus(0x13, true); Keyboards[i].EnqueueKey(0x13); break;
+                    case Keys.Escape: Keyboards[i].SetKeyStatus(0x14, true); Keyboards[i].EnqueueKey(0x14); break;
+                    case Keys.Up: Keyboards[i].SetKeyStatus(0x80, true); Keyboards[i].EnqueueKey(0x80); break;
+                    case Keys.Right: Keyboards[i].SetKeyStatus(0x81, true); Keyboards[i].EnqueueKey(0x81); break;
+                    case Keys.Down: Keyboards[i].SetKeyStatus(0x82, true); Keyboards[i].EnqueueKey(0x82); break;
+                    case Keys.Left: Keyboards[i].SetKeyStatus(0x83, true); Keyboards[i].EnqueueKey(0x83); break;
+                    case Keys.ShiftKey: Keyboards[i].SetKeyStatus(0x90, true); Keyboards[i].EnqueueKey(0x90); break;
+                    case Keys.ControlKey: Keyboards[i].SetKeyStatus(0x91, true); Keyboards[i].EnqueueKey(0x91); break;
+                    default:
+                        if (e.KeyValue >= 0x20 && e.KeyValue < 0x80)
+                            Keyboards[i].SetKeyStatus((ushort)e.KeyValue, true);
+                        break;
                 }
-
-                if (e.KeyValue < 128)
-                    Keyboards[i].SetKeyStatus((ushort)e.KeyValue, true);
             }
         }
 

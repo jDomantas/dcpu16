@@ -10,18 +10,21 @@ namespace dcpu16.Hardware.Keyboard
     class KeyboardDevice : IHardware
     {
         private Queue<ushort> KeyBuffer;
-        private Dictionary<ushort, bool> KeyStatus;
+        private bool[] KeyStatus;
+        private ushort InterruptMessage;
+        private int MessagesPending;
 
         public KeyboardDevice()
         {
             KeyBuffer = new Queue<ushort>();
-            KeyStatus = new Dictionary<ushort, bool>();
+            KeyStatus = new bool[65536];
+            InterruptMessage = 0;
+            MessagesPending = 0;
         }
 
         public uint GetHardwareID()
         {
-            // ASCII for "KEYS"
-            return 0x4B455953;
+            return 0x30cf7406;
         }
 
         public ushort GetHardwareVersion()
@@ -31,56 +34,45 @@ namespace dcpu16.Hardware.Keyboard
 
         public uint GetManufacturer()
         {
-            // ASCII for "DFLT"
-            return 0x44464C54;
+            return 0;
         }
 
         public void Interrupt(Dcpu dcpu)
         {
-            if (dcpu.A == 0)
+            switch (dcpu.A)
             {
-                if (KeyBuffer.Count == 0)
-                    dcpu.C = 0;
-                else
-                    dcpu.C = KeyBuffer.Dequeue();
-            }
-            else if (dcpu.A == 1)
-            {
-                if (KeyBuffer.Count == 0)
-                    dcpu.C = 0;
-                else
-                    dcpu.C = 1;
-            }
-            else if (dcpu.A == 2)
-            {
-                KeyBuffer.Clear();
-            }
-            else if (dcpu.A == 3)
-            {
-                if (KeyStatus.ContainsKey(dcpu.C) && KeyStatus[dcpu.C])
-                    dcpu.A = 1;
-                else
-                    dcpu.A = 0;
+                case 0: KeyBuffer.Clear(); break;
+                case 1: dcpu.C = KeyBuffer.Count == 0 ? (ushort)0 : KeyBuffer.Dequeue(); break;
+                case 2: dcpu.C = (ushort)(KeyStatus[dcpu.B] ? 1 : 0); break;
+                case 3: InterruptMessage = dcpu.B; break;
             }
         }
 
         public void UpdateInternal(Dcpu dcpu, long cyclesPassed)
         {
-            
+            if (InterruptMessage != 0)
+            {
+                while (MessagesPending > 0)
+                {
+                    dcpu.QueueInterrupt(InterruptMessage);
+                    MessagesPending--;
+                }
+            }
+            else
+                MessagesPending = 0;
         }
 
         public void EnqueueKey(ushort key)
         {
+            MessagesPending++;
             if (KeyBuffer.Count < 256)
                 KeyBuffer.Enqueue(key);
         }
 
         public void SetKeyStatus(ushort key, bool down)
         {
-            if (KeyStatus.ContainsKey(key))
-                KeyStatus[key] = down;
-            else
-                KeyStatus.Add(key, down);
+            KeyStatus[key] = down;
+            MessagesPending++;
         }
 
         public void Shutdown()
