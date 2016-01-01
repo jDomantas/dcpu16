@@ -158,7 +158,6 @@ namespace dcpu16.Hardware.Screen
         };
         #endregion
 
-        private enum DisplayMode { Off, Terminal, Text, Graphical }
         private const int TextWidth = 32, TextHeight = 12;
         private const int ScreenWidth = TextWidth * 4, ScreenHeight = TextHeight * 8;
 
