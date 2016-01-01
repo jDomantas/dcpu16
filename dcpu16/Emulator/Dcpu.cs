@@ -58,7 +58,7 @@ namespace dcpu16.Emulator
             Memory = new ushort[MemoryLength + RegisterCount + 1];
             InstructionsToSkip = 0;
             CycleDebt = 0;
-            InterruptQueueingEnabled = true;
+            InterruptQueueingEnabled = false;
             InterruptQueue = new Queue<ushort>();
 
             Devices = devices;
@@ -491,7 +491,12 @@ namespace dcpu16.Emulator
                     Devices[i].UpdateInternal(this, passed);
 
                 while (CycleDebt <= 0 && !Halted)
+                {
                     ExecuteInstruction();
+                    if (!InterruptQueueingEnabled && InterruptQueue.Count > 0)
+                        TriggerInterrupt(InterruptQueue.Dequeue());
+
+                }
 
                 Thread.Sleep(10);
             }
