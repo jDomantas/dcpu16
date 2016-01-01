@@ -5,6 +5,7 @@ using dcpu16.Hardware.Clock;
 using dcpu16.Hardware.ExternalDisk;
 using dcpu16.Hardware.Keyboard;
 using dcpu16.Hardware.Screen;
+using NDesk.Options;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -14,324 +15,297 @@ namespace dcpu16
 {
     class Program
     {
-        private List<string> Devices;
-        private ushort[] CurrentImage;
-
-        private Program()
+        static ushort[] LoadBinaryFile(string path)
         {
-            Devices = new List<string>();
-            AddDefaultHardwareDevices();
-            CurrentImage = null;
-        }
+            byte[] fileData = null;
 
-        private void AddDefaultHardwareDevices()
-        {
-            Devices.Clear();
-
-            Devices.Add("keyboard");
-            Devices.Add("screen");
-            Devices.Add("harddrive");
-            Devices.Add("clock");
-        }
-
-        private void RunProgram(string[] args)
-        {
-            if (args.Length == 1)
-            {
-                // assemble and run program with default devices
-                Assemble(new string[] { "asm", args[0] });
-                RunEmulator(new string[] { "run" });
-            }
-            else if (args.Length == 2)
-            {
-                // assemble and write to file
-                Assemble(new string[] { "asm", args[0], args[1] });
-            }
-            else
-            {
-                while (!ReadAndEvaluateCommand()) ;
-            }
-        }
-
-        private bool ReadAndEvaluateCommand()
-        {
-            Console.Write("> ");
-            string command = Console.ReadLine().ToLower();
-
-            string[] parts = command.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-
-            if (parts.Length == 0)
-                Help();
-            else if (parts[0] == "help")
-                Help();
-            else if (parts[0] == "add")
-                AddDevice(parts);
-            else if (parts[0] == "remove")
-                RemoveDevice(parts);
-            else if (parts[0] == "list")
-                ListDevices(parts);
-            else if (parts[0] == "clear")
-                ClearDevices(parts);
-            else if (parts[0] == "run")
-                RunEmulator(parts);
-            else if (parts[0] == "asm")
-                Assemble(parts);
-            else if (parts[0] == "load")
-                LoadBinary(parts);
-            else if (parts[0] == "exit")
-                return true;
-            else
-            {
-                Console.WriteLine($"Unknown command: {command}");
-                Console.WriteLine("Write 'help' to see a list of commands");
-            }
-
-            return false;
-        }
-
-        private void Help()
-        {
-            Console.WriteLine("List of available commands:");
-            Console.WriteLine("* run                   - runs currently loaded image");
-            Console.WriteLine("* add [device]          - adds hardware device");
-            Console.WriteLine("* remove [device]       - removes hardware device");
-            Console.WriteLine("* list                  - lists hardware devices");
-            Console.WriteLine("* clear                 - remove all hardware");
-            Console.WriteLine("* asm [file]            - assemble and load file");
-            Console.WriteLine("* asm [file] [output]   - assemble file and write to output file");
-            Console.WriteLine("* load [file]           - load binary image");
-        }
-
-        private void RunEmulator(string[] args)
-        {
-            if (args.Length != 1)
-            {
-                Console.WriteLine("Incorrect usage");
-                Console.WriteLine("Usage: 'run'");
-                return;
-            }
-
-            if (CurrentImage == null)
-            {
-                Console.WriteLine("Can't run, no image loaded");
-                return;
-            }
-
-            IHardware[] hardware = new IHardware[Devices.Count];
-            List<KeyboardDevice> keyboards = new List<KeyboardDevice>();
-            for (int i = 0; i < Devices.Count; i++)
-            {
-                if (Devices[i] == "screen") hardware[i] = new ScreenForm(keyboards);
-                else if (Devices[i] == "keyboard") hardware[i] = new KeyboardDevice();
-                else if (Devices[i] == "harddrive") hardware[i] = new HardDrive();
-                else if (Devices[i] == "clock") hardware[i] = new Clock();
-
-                if (Devices[i] == "keyboard") keyboards.Add((KeyboardDevice)hardware[i]);
-            }
-
-            Dcpu emulator = new Dcpu(hardware);
-            for (int i = 0; i < CurrentImage.Length; i++)
-                emulator.Memory[i] = CurrentImage[i];
-
-            emulator.Run();
-            Console.WriteLine("Program terminated");
-        }
-
-        private void AddDevice(string[] args)
-        {
-            if (args.Length != 2)
-            {
-                Console.WriteLine("Incorrect usage");
-                Console.WriteLine("Usage: add [device]");
-                Console.WriteLine("For list of available devices, type 'list'");
-                return;
-            }
-
-            if (args[1] == "screen")
-                Devices.Add("screen");
-            else if (args[1] == "keyboard")
-                Devices.Add("keyboard");
-            else if (args[1] == "harddrive")
-                Devices.Add("harddrive");
-            else if (args[1] == "clock")
-                Devices.Add("clock");
-            else
-                Console.WriteLine($"Unknown device: {args[1]}");
-        }
-
-        private void RemoveDevice(string[] args)
-        {
-            if (args.Length != 2)
-            {
-                Console.WriteLine("Incorrect usage");
-                Console.WriteLine("Usage: remove [device]");
-                Console.WriteLine("For list of added devices, type 'list'");
-                return;
-            }
-
-            int index;
-            if (int.TryParse(args[1], out index))
-            {
-                if (index < 1 || index > Devices.Count)
-                    Console.WriteLine("Index out of range");
-                else
-                    Devices.RemoveAt(index - 1);
-                return;
-            }
-
-            for (int i = 0; i < Devices.Count; i++)
-            {
-                if (Devices[i] == args[1])
-                {
-                    Devices.RemoveAt(i);
-                    return;
-                }
-            }
-
-            Console.WriteLine($"Device not found: {args[1]}");
-        }
-
-        private void ListDevices(string[] args)
-        {
-            for (int i = 0; i < Devices.Count; i++)
-                Console.WriteLine($"{i + 1}. {Devices[i]}");
-
-            Console.WriteLine("All available devices:");
-            Console.WriteLine("* Keyboard");
-            Console.WriteLine("* Screen");
-            Console.WriteLine("* Harddrive");
-            Console.WriteLine("* Clock");
-        }
-
-        private void ClearDevices(string[] args)
-        {
-            if (args.Length != 1)
-            {
-                Console.WriteLine("Incorrect usage");
-                Console.WriteLine("Usage: 'clear'");
-                return;
-            }
-
-            Devices.Clear();
-        }
-
-        private void Assemble(string[] args)
-        {
-            string output = null;
-            if (args.Length == 3)
-                output = args[2];
-            else if (args.Length != 2)
-            {
-                Console.WriteLine("Incorrect usage");
-                Console.WriteLine("Usage: 'asm file' or 'asm file outputfile'");
-                return;
-            }
-
-            string[] lines;
             try
             {
-                lines = File.ReadAllLines(args[1]);
+                fileData = File.ReadAllBytes(path);
             }
             catch (Exception e)
             {
-                Console.WriteLine("Couldn't read file");
+                Console.WriteLine($"Couldn't open {path}");
                 Console.WriteLine(e.Message);
-                return;
+                Environment.Exit(0);
+            }
+
+            if (fileData.Length % 2 != 0)
+            {
+                Console.WriteLine($"Invalid binary file, length is not even: {fileData.Length}");
+                Environment.Exit(0);
+            }
+
+            if (fileData.Length > 0x20000)
+            {
+                Console.WriteLine($"Invalid binary file, length is too big: {fileData.Length}");
+                Environment.Exit(0);
+            }
+
+            ushort[] words = new ushort[fileData.Length / 2];
+            for (int i = 0; i < words.Length; i++)
+                words[i] = (ushort)((fileData[2 * i] << 8) + fileData[2 * i + 1]);
+
+            return words;
+        }
+
+        static ushort[] AssembleSource(string path)
+        {
+            string[] lines = null;
+            try
+            {
+                lines = File.ReadAllLines(path);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Failed to read file: {path}");
+                Console.WriteLine(e.Message);
+                Environment.Exit(0);
             }
 
             Assembler.Assembler asm = new Assembler.Assembler();
             asm.AssembleCode(lines);
-            
-            if (asm.GetErrors().Any())
+            bool haveErrors = false;
+            foreach (string error in asm.GetErrors())
             {
-                Console.WriteLine("Errors:");
-                foreach (var err in asm.GetErrors())
-                    Console.WriteLine(err);
-                return;
+                Console.WriteLine($"Error: {error}");
+                haveErrors = true;
             }
 
-            if (output != null)
-            {
-                try
-                {
-                    FileStream file = File.Open(output, FileMode.Create);
-                    ushort[] memory = asm.GetMemoryDump();
-                    for (int i = 0; i < memory.Length; i++)
-                    {
-                        file.WriteByte((byte)((memory[i] >> 8) & 0xFF));
-                        file.WriteByte((byte)((memory[i]) & 0xFF));
-                    }
-                    file.Close();
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine("Couldn't write file");
-                    Console.WriteLine(e.Message);
-                    return;
-                }
-            }
-            else
-            {
-                CurrentImage = asm.GetMemoryDump();
-                Console.WriteLine($"Image loaded, image size: {CurrentImage.Length} words");
-            }
+            if (haveErrors)
+                Environment.Exit(0);
+
+            return asm.GetMemoryDump();
         }
-        
-        private void LoadBinary(string[] args)
+
+        static void RunEmulator(ushort[] memoryImage, List<string> hardware)
         {
-            if (args.Length != 2)
+            if (hardware.Count == 0)
             {
-                Console.WriteLine("Incorrect usage");
-                Console.WriteLine("Usage: 'load file'");
-                return;
+                hardware.Add("clock");
+                hardware.Add("keyboard");
+                hardware.Add("lem");
+                hardware.Add("floppy");
             }
 
-            CurrentImage = null;
+            List<IHardware> hardwareDevices = new List<IHardware>();
+            List<KeyboardDevice> keyboards = new List<KeyboardDevice>();
+
+            bool containsInvalid = false;
+
+            foreach (var item in hardware)
+            {
+                if ("clock".StartsWith(item)) hardwareDevices.Add(new Clock());
+                else if ("lem".StartsWith(item)) hardwareDevices.Add(new ScreenForm(keyboards));
+                else if ("floppy".StartsWith(item)) hardwareDevices.Add(new HardDrive());
+                else if ("keyboard".StartsWith(item))
+                {
+                    var keyboard = new KeyboardDevice();
+                    hardwareDevices.Add(keyboard);
+                    keyboards.Add(keyboard);
+                }
+                else
+                {
+                    Console.WriteLine($"Unknown device: {item}");
+                    containsInvalid = true;
+                }
+            }
+
+            if (containsInvalid)
+                return;
+
+            Dcpu emulator = new Dcpu(hardwareDevices.ToArray());
+            for (int i = 0; i < memoryImage.Length; i++)
+                emulator.Memory[i] = memoryImage[i];
+
+            Console.WriteLine($"Running emulator, image size: {memoryImage.Length}");
 
             try
             {
-                FileStream file = File.Open(args[1], FileMode.Open);
-                if (file.Length % 2 != 0)
-                {
-                    Console.WriteLine($"File is {file.Length} bytes long");
-                    Console.WriteLine("Must be a multiple of two");
-                    return;
-                }
-                if (file.Length > 0x20000)
-                {
-                    Console.WriteLine($"File is {file.Length} bytes long");
-                    Console.WriteLine($"Must be at most {0x20000}");
-                    return;
-                }
-
-                ushort[] memory = new ushort[file.Length / 2];
-                for (int i = 0; i < file.Length / 2; i++)
-                {
-                    int high = file.ReadByte();
-                    int low = file.ReadByte();
-                    memory[i] = (ushort)((high << 8) | low);
-                }
-                file.Close();
-                CurrentImage = memory;
+                emulator.Run();
             }
             catch (Exception e)
             {
-                Console.WriteLine("Couldn't read file");
+                Console.WriteLine("Crashed:");
+                Console.Write(e.ToString());
+            }
+        }
+
+        static void DisassembleBinary(string source, string destination)
+        {
+            ushort[] fileData = LoadBinaryFile(source);
+
+            Disassembler disasm = new Disassembler();
+
+            try
+            {
+                FileStream file = File.Create(destination);
+                StreamWriter writer = new StreamWriter(file);
+
+                for (int i = 0; i < fileData.Length;)
+                {
+                    int start = i / 2;
+                    ushort word = fileData[i++];
+                    string instr = disasm.DisassembleInstruction(word);
+                    string memory = word.ToString("X4");
+                    while (instr.Contains("next_word"))
+                    {
+                        if (i >= fileData.Length)
+                        {
+                            writer.WriteLine($"{start.ToString("X4")}:  {memory.PadRight(14)}  {instr} ; cut off");
+                            break;
+                        }
+                        int index = instr.IndexOf("next_word");
+                        ushort next = fileData[i++];
+                        instr = instr.Substring(0, index) + next.ToString("X4") + instr.Substring(index + 9);
+                    }
+                    writer.WriteLine($"{start.ToString("X4")}    {instr}");
+                }
+
+                writer.Close();
+                file.Close();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Failed to write to file: {destination}");
+                Console.WriteLine(e.Message);
+            }
+        }
+
+        static void AssembleFile(string source, string destination)
+        {
+            ushort[] data = AssembleSource(source);
+
+            byte[] bytes = new byte[data.Length * 2];
+            for (int i = 0; i < data.Length; i++)
+            {
+                bytes[2 * i] = (byte)((data[i] >> 8) & 0xFF);
+                bytes[2 * i + 1] = (byte)(data[i] & 0xFF);
+            }
+
+            try
+            {
+                File.WriteAllBytes(destination, bytes);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Failed to write to file: {destination}");
                 Console.WriteLine(e.Message);
                 return;
             }
-
-            Console.WriteLine($"Image loaded, image size: {CurrentImage.Length} words");
         }
 
-        static string InstructionToString(ushort instr)
+        static void LoadBinary(string source, List<string> hardware)
         {
-            return $"{(instr & 0x1F).ToString("X2")} {((instr >> 5) & 0x1F).ToString("X2")} {((instr >> 10) & 0x3F).ToString("X2")}";
+            ushort[] file = LoadBinaryFile(source);
+
+            RunEmulator(file, hardware);
+        }
+
+        static void RunProgram(string source, List<string> hardware)
+        {
+            ushort[] file = AssembleSource(source);
+
+            RunEmulator(file, hardware);
+        }
+
+        static void PrintHelp()
+        {
+            Console.WriteLine("usage:");
+            Console.WriteLine("    dcpu16");
+            Console.WriteLine("        load default firmware and run");
+            Console.WriteLine();
+            Console.WriteLine("	   dcpu16 -run=program.dasm");
+            Console.WriteLine("        assemble and run program");
+            Console.WriteLine();
+            Console.WriteLine("    dcpu -bin=program.bin");
+            Console.WriteLine("        load and run binary file");
+            Console.WriteLine();
+            Console.WriteLine("    dcpu -asm=program.dasm [-o=output.dat]");
+            Console.WriteLine("	       assemble program and create binary file");
+            Console.WriteLine();
+            Console.WriteLine("    dcpu -disasm=program.bin [-o=ouput.dasm]");
+            Console.WriteLine("        dissasemble binary file");
+            Console.WriteLine();
+            Console.WriteLine("parameters:");
+            Console.WriteLine("    -d=device");
+            Console.WriteLine("        add hardware device (removes defaults), one of:");
+            Console.WriteLine("        clock, keyboard, lem, floppy");
+            Environment.Exit(0);
+        }
+
+        static void IncorrectUsage()
+        {
+            Console.WriteLine("Incorrect usage");
+            PrintHelp();
         }
         
         static void Main(string[] args)
         {
-            new Program().RunProgram(args);
+            var hardware = new List<string>();
+            string 
+                run = null,
+                assemble = null, 
+                load = null, 
+                disassemble = null, 
+                output = null;
+            bool showHelp = false;
+
+            var options = new OptionSet() {
+                { "d=|device=", "add hardware device",
+                    h => hardware.Add(h) },
+                { "o=|output=",
+                    "set output file",
+                    o => output = o },
+                { "disasm=", "disassemble binary file",
+                    d => disassemble = d },
+                { "bin=", "load and run binary file",
+                    b => load = b },
+                { "asm=", "assemble program and create binary file",
+                    a => assemble = a },
+                { "run=", "assemble and run program",
+                    r => run = r },
+                { "h|?|help",  "show this message and exit",
+                    v => showHelp = v != null },
+            };
+            
+            options.Parse(args);
+
+            if (showHelp)
+                PrintHelp();
+
+            if (disassemble != null)
+            {
+                if (output == null) output = disassemble + ".dasm";
+                if (run != null || assemble != null || load != null || output == null)
+                    IncorrectUsage();
+                else
+                    DisassembleBinary(disassemble, output);
+            }
+            else if (assemble != null)
+            {
+                if (output == null) output = disassemble + ".dat";
+                if (run != null || disassemble != null || load != null || output == null)
+                    IncorrectUsage();
+                else
+                    AssembleFile(assemble, output);
+            }
+            else if (load != null)
+            {
+                if (run != null || assemble != null || disassemble != null || output != null)
+                    IncorrectUsage();
+                else
+                    LoadBinary(load, hardware);
+            }
+            else if (run != null)
+            {
+                if (load != null || assemble != null || disassemble != null || output != null)
+                    IncorrectUsage();
+                else
+                    RunProgram(run, hardware);
+            }
+            else
+                PrintHelp();
 
 #if DEBUG
             Console.ReadKey();
