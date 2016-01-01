@@ -465,9 +465,10 @@ namespace dcpu16.Emulator
             Console.WriteLine("=================================");
         }
 
-        public void Run()
+        public void Run(int radiation)
         {
             Stopwatch clock = new Stopwatch();
+            Random rnd = new Random((int)DateTime.Now.Ticks);
             clock.Start();
 
             CycleDebt = 0;
@@ -475,7 +476,7 @@ namespace dcpu16.Emulator
 
             long currentCycles = 0;
             long cyclesPerSecond = 100000;
-
+            
             while (!Halted)
             {
                 long ticks = clock.ElapsedTicks;
@@ -485,6 +486,13 @@ namespace dcpu16.Emulator
                 {
                     CycleDebt -= (int)passed;
                     currentCycles = cycles;
+                    for (int i = 0; i < passed; i++)
+                    {
+                        // flip random bits depending on radiation setting
+                        int randVal = rnd.Next(100000);
+                        if (randVal < radiation)
+                            Memory[rnd.Next(0x10000)] ^= (ushort)(1 << rnd.Next(16));
+                    }
                 }
 
                 for (int i = 0; i < Devices.Length; i++)
