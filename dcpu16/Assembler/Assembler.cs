@@ -424,6 +424,8 @@ namespace dcpu16.Assembler
                 return Tuple.Create(0, -1);
             }
 
+            currentTotal &= 0xFFFF;
+
             if (brackets)
             {
                 if (currentRegister == 8) // SP was used
