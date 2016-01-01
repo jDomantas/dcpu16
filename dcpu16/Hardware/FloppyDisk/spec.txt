@@ -4,7 +4,7 @@ Hardware ID:		0x4449535B
 Hardware version:	1
 Manufacturer ID:	0x44464C54
 
-(uses file 'harddrive.dat')
+(uses file specified in parentheses)
 
 Disk size is 1 MB by default
 
@@ -16,7 +16,9 @@ A = 1:
 	Copies data from disk starting at address X:Y to
 	memory starting at address B. Copies a total of C
 	words. Out of bounds access in disk returns 0.
+	Halts dcpu for C cycles.
 A = 2:
 	Copies data from memory starting at address B to 
 	disk starting at address X:Y. Copies a total of C
 	words. Out of bounds writes in disk fail silently.
+	Halts dcpu for C cycles.

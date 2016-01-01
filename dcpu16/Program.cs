@@ -2,19 +2,50 @@
 using dcpu16.Emulator;
 using dcpu16.Hardware;
 using dcpu16.Hardware.Clock;
-using dcpu16.Hardware.ExternalDisk;
+using dcpu16.Hardware.FloppyDisk;
 using dcpu16.Hardware.Keyboard;
 using dcpu16.Hardware.Screen;
 using NDesk.Options;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace dcpu16
 {
     class Program
     {
+        static Tuple<string, string> ParseDevice(string device)
+        {
+            string pattern = @"
+                ^
+                    (
+                        [^()]+
+                    )
+                    \(
+                        (
+                            [^()]+
+                        )
+                    \)
+                $
+                |
+                ^
+                (
+                    [^()]+
+                )
+                $";
+            var match = Regex.Match(device, pattern, RegexOptions.IgnorePatternWhitespace);
+            if (match.Success)
+            {
+                if (match.Groups[3].Success)
+                    return Tuple.Create<string, string>(device, null);
+                else
+                    return Tuple.Create(match.Groups[1].Value, match.Groups[2].Value);
+            }
+
+            return Tuple.Create<string, string>(null, null);
+        }
+
         static ushort[] LoadBinaryFile(string path)
         {
             byte[] fileData = null;
@@ -85,7 +116,7 @@ namespace dcpu16
                 hardware.Add("clock");
                 hardware.Add("keyboard");
                 hardware.Add("lem");
-                hardware.Add("floppy");
+                hardware.Add("floppy(floppy.dat)");
             }
 
             List<IHardware> hardwareDevices = new List<IHardware>();
@@ -95,10 +126,28 @@ namespace dcpu16
 
             foreach (var item in hardware)
             {
-                if ("clock".StartsWith(item)) hardwareDevices.Add(new Clock());
-                else if ("lem".StartsWith(item)) hardwareDevices.Add(new ScreenForm(keyboards));
-                else if ("floppy".StartsWith(item)) hardwareDevices.Add(new HardDrive());
-                else if ("keyboard".StartsWith(item))
+                var device = ParseDevice(item);
+                if (device.Item1 == null)
+                {
+                    Console.WriteLine($"Unknown device: {item}");
+                    containsInvalid = true;
+                    continue;
+                }
+
+                if ("clock".StartsWith(device.Item1)) hardwareDevices.Add(new Clock());
+                else if ("lem".StartsWith(device.Item1)) hardwareDevices.Add(new ScreenForm(keyboards));
+                else if ("floppy".StartsWith(device.Item1))
+                {
+                    if (device.Item2 == null)
+                    {
+                        Console.WriteLine("Missing file for floppy");
+                        containsInvalid = true;
+                    }
+                    else
+                        hardwareDevices.Add(new Floppy(device.Item2));
+                    device = null;
+                }
+                else if ("keyboard".StartsWith(device.Item1))
                 {
                     var keyboard = new KeyboardDevice();
                     hardwareDevices.Add(keyboard);
@@ -109,6 +158,9 @@ namespace dcpu16
                     Console.WriteLine($"Unknown device: {item}");
                     containsInvalid = true;
                 }
+
+                if (device != null && device.Item2 != null)
+                    Console.WriteLine($"Ignored parameter for {device.Item1}: {device.Item2}");
             }
 
             if (containsInvalid)
@@ -232,6 +284,7 @@ namespace dcpu16
             Console.WriteLine("    -d=device");
             Console.WriteLine("        add hardware device (removes defaults), one of:");
             Console.WriteLine("        clock, keyboard, lem, floppy");
+            Console.WriteLine("        specify floppy file with -d=floppy(file.dat)");
             Environment.Exit(0);
         }
 
