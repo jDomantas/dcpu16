@@ -386,7 +386,7 @@ namespace dcpu16.Emulator
             int code = (instruction >> 10) & 0x3F;
             if (code == 0x18)
             {
-                return SP++;
+                return InstructionsToSkip > 0 ? SP + 1 : SP++;
             }
             else if (code > 0x1F)
             {
@@ -428,7 +428,7 @@ namespace dcpu16.Emulator
                 case 0x15: return (Z + FetchWord()) & 0xFFFF;
                 case 0x16: return (I + FetchWord()) & 0xFFFF;
                 case 0x17: return (J + FetchWord()) & 0xFFFF;
-                case 0x18: return --SP;
+                case 0x18: return InstructionsToSkip > 0 ? SP - 1 : --SP;
                 case 0x19: return SP;
                 case 0x1A: return (SP + FetchWord()) & 0xFFFF;
                 case 0x1B: return (int)Registers.SP;
