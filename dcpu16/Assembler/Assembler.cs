@@ -67,6 +67,9 @@ namespace dcpu16.Assembler
                 // syntaxic sugar
                 ["JMP"] = (line, operands) => AssembleSpecialInstruction(line, 0x381, operands),
                 ["HLT"] = (line, operands) => AssembleNoOperandInstruction(line, 0, operands),
+
+                // preprocessor
+                ["DEF"] = (line, operands) => AddDefinition(line, operands),
             };
         }
 
@@ -117,11 +120,7 @@ namespace dcpu16.Assembler
         {
             if (instr.Length == 0) return;
             
-            string name;
-            if (instr.Length < 3)
-                name = instr.ToUpper();
-            else
-                name = instr.Substring(0, 3).ToUpper();
+            string name = instr.Split(' ', '\t')[0].ToUpper();
 
             if (!Instructions.ContainsKey(name))
             {
@@ -129,7 +128,7 @@ namespace dcpu16.Assembler
                 return;
             }
 
-            string[] operands = SplitQuoted(instr.Substring(3), ',');
+            string[] operands = SplitQuoted(instr.Substring(name.Length), ',');
             for (int i = 0; i < operands.Length; i++)
             {
                 operands[i] = operands[i].Trim();
@@ -622,6 +621,33 @@ namespace dcpu16.Assembler
             }
 
             MemoryDump.Add(opCode);
+        }
+
+        private void AddDefinition(string line, string[] operands)
+        {
+            if (operands.Length != 2)
+            {
+                CurrentErrors.Add($"Expected one operand: {line}");
+                return;
+            }
+
+            operands[0] = operands[0].ToUpper();
+            operands[1] = operands[1].ToUpper();
+
+            if (!IsValidName(operands[0]))
+            {
+                Console.WriteLine($"Invalid name: {operands[0]}");
+                return;
+            }
+
+            int value = ParseNumber(operands[1]);
+            if (value == -1)
+            {
+                Console.WriteLine($"Invalid integer literal: {operands[1]}");
+                return;
+            }
+
+            LabelValues.Add(operands[0], value);
         }
     }
 }
