@@ -144,7 +144,7 @@ namespace dcpu16
 
                 for (int i = 0; i < fileData.Length;)
                 {
-                    int start = i / 2;
+                    int start = i;
                     ushort word = fileData[i++];
                     string instr = disasm.DisassembleInstruction(word);
                     string memory = word.ToString("X4");
@@ -152,14 +152,15 @@ namespace dcpu16
                     {
                         if (i >= fileData.Length)
                         {
-                            writer.WriteLine($"{start.ToString("X4")}:  {memory.PadRight(14)}  {instr} ; cut off");
+                            writer.WriteLine($"{start.ToString("X4")}: {memory.PadRight(14)}    {instr} ; cut off");
                             break;
                         }
                         int index = instr.IndexOf("next_word");
                         ushort next = fileData[i++];
                         instr = instr.Substring(0, index) + next.ToString("X4") + instr.Substring(index + 9);
+                        memory = memory + " " + next.ToString("X4");
                     }
-                    writer.WriteLine($"{start.ToString("X4")}    {instr}");
+                    writer.WriteLine($"{start.ToString("X4")}: {memory.PadRight(14)}    {instr}");
                 }
 
                 writer.Close();
@@ -284,7 +285,7 @@ namespace dcpu16
             }
             else if (assemble != null)
             {
-                if (output == null) output = disassemble + ".dat";
+                if (output == null) output = assemble + ".dat";
                 if (run != null || disassemble != null || load != null || output == null)
                     IncorrectUsage();
                 else
