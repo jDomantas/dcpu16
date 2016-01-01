@@ -324,7 +324,7 @@ namespace dcpu16.Hardware.Screen
 
                     int fontData = CurrentFontMap == 0 ?
                         PixelFont[ch * 2 + ((x & 2) >> 1)] :
-                        dcpu.Memory[(CurrentFontMap + ch * 2 + ((x & 2) >> 2)) & 0xFFFF];
+                        dcpu.Memory[(CurrentFontMap + ch * 2 + ((x & 2) >> 1)) & 0xFFFF];
 
                     if ((fontData & (1 << ((y & 0x7) + 8 * (1 - (x & 1))))) == 0) // background
                     {
