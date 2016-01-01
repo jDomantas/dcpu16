@@ -64,7 +64,7 @@ namespace dcpu16.Hardware.Keyboard
             }
         }
 
-        public void UpdateInternal()
+        public void UpdateInternal(Dcpu dcpu, long cyclesPassed)
         {
             
         }

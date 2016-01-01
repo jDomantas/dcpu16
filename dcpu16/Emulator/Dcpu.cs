@@ -32,8 +32,8 @@ namespace dcpu16.Emulator
         private const int InternalLiteral = 0x1000C;
 
         public ushort[] Memory;
+        public int CycleDebt;
         private int InstructionsToSkip;
-        private int CycleDebt;
         private bool InterruptQueueingEnabled;
         private Queue<ushort> InterruptQueue;
         private bool Halted;
@@ -480,14 +480,15 @@ namespace dcpu16.Emulator
             {
                 long ticks = clock.ElapsedTicks;
                 long cycles = (ticks * cyclesPerSecond) / Stopwatch.Frequency;
+                long passed = cycles - currentCycles;
                 if (cycles > currentCycles)
                 {
-                    CycleDebt -= (int)(cycles - currentCycles);
+                    CycleDebt -= (int)passed;
                     currentCycles = cycles;
                 }
 
                 for (int i = 0; i < Devices.Length; i++)
-                    Devices[i].UpdateInternal();
+                    Devices[i].UpdateInternal(this, passed);
 
                 while (CycleDebt <= 0 && !Halted)
                     ExecuteInstruction();

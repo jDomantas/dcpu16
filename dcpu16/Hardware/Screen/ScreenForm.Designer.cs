@@ -38,18 +38,18 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.displayPanel.Location = new System.Drawing.Point(12, 12);
             this.displayPanel.Name = "displayPanel";
-            this.displayPanel.Size = new System.Drawing.Size(788, 523);
+            this.displayPanel.Size = new System.Drawing.Size(650, 490);
             this.displayPanel.TabIndex = 0;
             // 
             // ScreenForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(812, 547);
+            this.ClientSize = new System.Drawing.Size(674, 514);
             this.Controls.Add(this.displayPanel);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Name = "ScreenForm";
-            this.Text = "DCPU-16 screen";
+            this.Text = "LEM1802";
             this.ResumeLayout(false);
 
         }

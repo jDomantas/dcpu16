@@ -80,7 +80,7 @@ namespace dcpu16.Hardware.ExternalDisk
             }
         }
 
-        public void UpdateInternal()
+        public void UpdateInternal(Dcpu dcpu, long cyclesPassed)
         {
             
         }
