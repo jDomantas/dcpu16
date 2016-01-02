@@ -22,6 +22,7 @@ Key numbers are:
   0x11: Return
   0x12: Insert
   0x13: Delete
+  0x14: Escape
   0x20-0x7f: ASCII characters
   0x80: Arrow up
   0x81: Arrow down

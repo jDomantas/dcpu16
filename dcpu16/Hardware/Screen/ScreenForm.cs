@@ -237,9 +237,9 @@ namespace dcpu16.Hardware.Screen
                     case Keys.Delete: Keyboards[i].SetKeyStatus(0x13, false); break;
                     case Keys.Escape: Keyboards[i].SetKeyStatus(0x14, false); break;
                     case Keys.Up: Keyboards[i].SetKeyStatus(0x80, false); break;
-                    case Keys.Right: Keyboards[i].SetKeyStatus(0x81, false); break;
-                    case Keys.Down: Keyboards[i].SetKeyStatus(0x82, false); break;
-                    case Keys.Left: Keyboards[i].SetKeyStatus(0x83, false); break;
+                    case Keys.Down: Keyboards[i].SetKeyStatus(0x81, false); break;
+                    case Keys.Left: Keyboards[i].SetKeyStatus(0x82, false); break;
+                    case Keys.Right: Keyboards[i].SetKeyStatus(0x83, false); break;
                     case Keys.ShiftKey: Keyboards[i].SetKeyStatus(0x90, false); break;
                     case Keys.ControlKey: Keyboards[i].SetKeyStatus(0x91, false); break;
                     default:
@@ -262,9 +262,9 @@ namespace dcpu16.Hardware.Screen
                     case Keys.Delete: Keyboards[i].SetKeyStatus(0x13, true); Keyboards[i].EnqueueKey(0x13); break;
                     case Keys.Escape: Keyboards[i].SetKeyStatus(0x14, true); Keyboards[i].EnqueueKey(0x14); break;
                     case Keys.Up: Keyboards[i].SetKeyStatus(0x80, true); Keyboards[i].EnqueueKey(0x80); break;
-                    case Keys.Right: Keyboards[i].SetKeyStatus(0x81, true); Keyboards[i].EnqueueKey(0x81); break;
-                    case Keys.Down: Keyboards[i].SetKeyStatus(0x82, true); Keyboards[i].EnqueueKey(0x82); break;
-                    case Keys.Left: Keyboards[i].SetKeyStatus(0x83, true); Keyboards[i].EnqueueKey(0x83); break;
+                    case Keys.Down: Keyboards[i].SetKeyStatus(0x81, true); Keyboards[i].EnqueueKey(0x81); break;
+                    case Keys.Left: Keyboards[i].SetKeyStatus(0x82, true); Keyboards[i].EnqueueKey(0x82); break;
+                    case Keys.Right: Keyboards[i].SetKeyStatus(0x83, true); Keyboards[i].EnqueueKey(0x83); break;
                     case Keys.ShiftKey: Keyboards[i].SetKeyStatus(0x90, true); Keyboards[i].EnqueueKey(0x90); break;
                     case Keys.ControlKey: Keyboards[i].SetKeyStatus(0x91, true); Keyboards[i].EnqueueKey(0x91); break;
                     default:
