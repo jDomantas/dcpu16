@@ -328,7 +328,7 @@ namespace dcpu16.Assembler
             for (; i <= operand.Length; i++)
             {
                 #region EndOfAlphanumericalToken
-                if (i > 0 && (i == operand.Length || !char.IsLetterOrDigit(operand[i])) && char.IsLetterOrDigit(operand[i - 1]))
+                if (i > 0 && (i == operand.Length || !IsValidNameCharacter(operand[i])) && IsValidNameCharacter(operand[i - 1]))
                 {
                     // number or name ended
                     // value substring: [alphanumStart, i)
@@ -392,7 +392,7 @@ namespace dcpu16.Assembler
 
                 if (i < operand.Length)
                 {
-                    if (char.IsLetterOrDigit(operand[i]) && (i == 0 || !char.IsLetterOrDigit(operand[i - 1])))
+                    if (IsValidNameCharacter(operand[i]) && (i == 0 || !IsValidNameCharacter(operand[i - 1])))
                         alphanumStart = i;
                     if (operand[i] == '+')
                     {
@@ -478,6 +478,11 @@ namespace dcpu16.Assembler
                     }
                 }
             }
+        }
+
+        private bool IsValidNameCharacter(char c)
+        {
+            return char.IsLetterOrDigit(c) || c == '_';
         }
 
         private bool IsValidName(string str)
