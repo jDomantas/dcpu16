@@ -291,27 +291,27 @@ namespace dcpu16.Hardware.Screen
         {
             switch (dcpu.A)
             {
-                case 0: CurrentMemoryMap = dcpu.B; break;
-                case 1: CurrentFontMap = dcpu.B; break;
-                case 2: CurrentPalleteMap = dcpu.B; break;
+                case 0: CurrentMemoryMap = dcpu.B + dcpu.MemoryAccessOffset; break;
+                case 1: CurrentFontMap = dcpu.B + dcpu.MemoryAccessOffset; break;
+                case 2: CurrentPalleteMap = dcpu.B + dcpu.MemoryAccessOffset; break;
                 case 3:
                     ushort color = CurrentPalleteMap == 0 ? 
                         ColorPalette[dcpu.B & 0xF] : 
-                        dcpu.Memory[(CurrentPalleteMap + (dcpu.B & 0xF)) & 0xFFFF];
+                        dcpu.Memory[(((CurrentPalleteMap + (dcpu.B & 0xF)) & 0xFFFF) + dcpu.MemoryAccessOffset) & dcpu.MemoryMask];
                     BackColor = Color.FromArgb((color & 0xF00) >> 4, color & 0xF0, (color & 0xF) << 4);
                     break;
                 case 4:
                     for (int i = 0; i < 256; i++)
-                        dcpu.Memory[(dcpu.B + i) & 0xFFFF] = CurrentFontMap == 0 ? 
+                        dcpu.Memory[(((dcpu.B + i) & 0xFFFF) + dcpu.MemoryAccessOffset) & dcpu.MemoryMask] = CurrentFontMap == 0 ? 
                             PixelFont[i] : 
-                            dcpu.Memory[(CurrentFontMap + i) & 0xFFFF];
+                            dcpu.Memory[(CurrentFontMap + i) & dcpu.MemoryMask];
                     dcpu.CycleDebt += 256;
                     break;
                 case 5:
                     for (int i = 0; i < 16; i++)
-                        dcpu.Memory[(dcpu.B + i) & 0xFFFF] = CurrentPalleteMap == 0 ? 
+                        dcpu.Memory[(((dcpu.B + i) & 0xFFFF) + dcpu.MemoryAccessOffset) & dcpu.MemoryMask] = CurrentPalleteMap == 0 ? 
                             ColorPalette[i] : 
-                            dcpu.Memory[(CurrentPalleteMap + i) & 0xFFFF];
+                            dcpu.Memory[(CurrentPalleteMap + i) & dcpu.MemoryMask];
                     dcpu.CycleDebt += 16;
                     break;
             }
@@ -339,23 +339,23 @@ namespace dcpu16.Hardware.Screen
             for (int x = 0; x < ScreenWidth; x++)
                 for (int y = 0; y < ScreenHeight; y++)
                 {
-                    ushort symbol = CurrentMemoryMap == 0 ? (ushort)0 : dcpu.Memory[(CurrentMemoryMap + (x >> 2) + (y >> 3) * TextWidth) & 0xFFFF];
+                    ushort symbol = CurrentMemoryMap == 0 ? (ushort)0 : dcpu.Memory[(CurrentMemoryMap + (x >> 2) + (y >> 3) * TextWidth) & dcpu.MemoryMask];
                     int ch = symbol & 0x7F;
 
                     ushort foreground = CurrentPalleteMap == 0 ? 
                         ColorPalette[symbol >> 12] : 
-                        dcpu.Memory[(CurrentPalleteMap + (symbol >> 12)) & 0xFFFF];
+                        dcpu.Memory[(CurrentPalleteMap + (symbol >> 12)) & dcpu.MemoryMask];
 
                     ushort background = CurrentPalleteMap == 0 ?
                         ColorPalette[(symbol >> 8) & 0xF] :
-                        dcpu.Memory[(CurrentPalleteMap + ((symbol >> 8) & 0xF)) & 0xFFFF];
+                        dcpu.Memory[(CurrentPalleteMap + ((symbol >> 8) & 0xF)) & dcpu.MemoryMask];
 
                     if ((symbol & 0x80) != 0 && (FrameCounter & 32) == 0)
                         foreground = background; // blinking characters
 
                     int fontData = CurrentFontMap == 0 ?
                         PixelFont[ch * 2 + ((x & 2) >> 1)] :
-                        dcpu.Memory[(CurrentFontMap + ch * 2 + ((x & 2) >> 1)) & 0xFFFF];
+                        dcpu.Memory[(CurrentFontMap + ch * 2 + ((x & 2) >> 1)) & dcpu.MemoryMask];
 
                     if ((fontData & (1 << ((y & 0x7) + 8 * (1 - (x & 1))))) == 0) // background
                     {

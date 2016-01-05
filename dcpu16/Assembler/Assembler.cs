@@ -62,6 +62,10 @@ namespace dcpu16.Assembler
                 ["HWQ"] = (line, operands) => AssembleSpecialInstruction(line, 0x11 << 5, operands),
                 ["HWI"] = (line, operands) => AssembleSpecialInstruction(line, 0x12 << 5, operands),
 
+                // custom extended specification
+                ["SEG"] = (line, operands) => AssembleSpecialInstruction(line, 0x02 << 5, operands),
+                ["JSG"] = (line, operands) => AssembleSimpleInstruction(line, 0x1C, operands),
+
                 ["DAT"] = (line, operands) => AssembleData(line, operands),
                 
                 // syntaxic sugar

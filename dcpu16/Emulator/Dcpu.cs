@@ -13,23 +13,27 @@ namespace dcpu16.Emulator
     {
         public enum Registers
         {
-            A = 0x10000,
-            B = 0x10001,
-            C = 0x10002,
-            X = 0x10003,
-            Y = 0x10004,
-            Z = 0x10005,
-            I = 0x10006,
-            J = 0x10007,
-            PC = 0x10008,
-            SP = 0x10009,
-            EX = 0x1000A,
-            IA = 0x1000B
+            A = 0x40000,
+            B = 0x40001,
+            C = 0x40002,
+            X = 0x40003,
+            Y = 0x40004,
+            Z = 0x40005,
+            I = 0x40006,
+            J = 0x40007,
+            PC = 0x40008,
+            SP = 0x40009,
+            EX = 0x4000A,
+            IA = 0x4000B,
+            SS = 0x4000C
         }
 
-        public const int MemoryLength = 0x10000;
-        public const int RegisterCount = 12;
-        private const int InternalLiteral = 0x1000C;
+        public bool ExtendedSpecification { get; }
+
+        public const int MemoryLength = 0x40000;
+        public const int RegisterCount = 13;
+        public int MemoryMask { get; private set; }
+        private const int InternalLiteral = 0x4000D;
 
         public ushort[] Memory;
         public int CycleDebt;
@@ -37,6 +41,8 @@ namespace dcpu16.Emulator
         private bool InterruptQueueingEnabled;
         private Queue<ushort> InterruptQueue;
         private bool Halted;
+        private bool AfterSegInstruction;
+        private bool ResetSegment;
 
         public ushort A { get { return Memory[(int)Registers.A]; } set { Memory[(int)Registers.A] = value; } }
         public ushort B { get { return Memory[(int)Registers.B]; } set { Memory[(int)Registers.B] = value; } }
@@ -50,10 +56,14 @@ namespace dcpu16.Emulator
         public ushort SP { get { return Memory[(int)Registers.SP]; } set { Memory[(int)Registers.SP] = value; } }
         public ushort EX { get { return Memory[(int)Registers.EX]; } set { Memory[(int)Registers.EX] = value; } }
         public ushort IA { get { return Memory[(int)Registers.IA]; } set { Memory[(int)Registers.IA] = value; } }
+        public ushort SS { get { return Memory[(int)Registers.SS]; } set { Memory[(int)Registers.SS] = value; } }
+
+        public int MemoryAccessOffset { get { return SS * 4; } }
+        private int FetchMemoryOffset;
 
         private IHardware[] Devices;
 
-        public Dcpu(IHardware[] devices)
+        public Dcpu(IHardware[] devices, bool useExtendedSpecification)
         {
             Memory = new ushort[MemoryLength + RegisterCount + 1];
             InstructionsToSkip = 0;
@@ -62,6 +72,13 @@ namespace dcpu16.Emulator
             InterruptQueue = new Queue<ushort>();
 
             Devices = devices;
+
+            ExtendedSpecification = useExtendedSpecification;
+
+            AfterSegInstruction = true;
+            ResetSegment = false;
+
+            MemoryMask = useExtendedSpecification ? 0x3FFFF : 0xFFFF;
         }
 
         public void QueueInterrupt(ushort message)
@@ -78,6 +95,10 @@ namespace dcpu16.Emulator
         {
             // All cycle costs are reduced by one because it
             // takes one cycle to fetch instruction code.
+
+            // if segment will be reset after this instruction,
+            // then this is after seg instruction
+            FetchMemoryOffset = ResetSegment ? 0 : MemoryAccessOffset;
 
             ushort instruction = FetchWord();
 
@@ -262,6 +283,15 @@ namespace dcpu16.Emulator
                         Memory[(int)Registers.EX] = 0;
                     Memory[b] += (ushort)((sbx_ex - Memory[a]) & 0xFFFF);
                     break;
+                case 0x1C: // JSG
+                    if (!ExtendedSpecification) goto default;
+                    ConsumeCycle(1);
+                    if (SS == 0)
+                    {
+                        SS = Memory[a];
+                        PC = Memory[b];
+                    }
+                    break;
                 case 0x1E: // STI
                     ConsumeCycle(1);
                     Memory[b] = Memory[a];
@@ -279,6 +309,8 @@ namespace dcpu16.Emulator
                     Console.WriteLine($"\nUnknown instruction, op code: 0x{opCode.ToString("X2")}");
                     break;
             }
+
+            PostInstruction();
         }
 
         private void ExecuteSpecialInstruction(ushort instruction)
@@ -299,6 +331,15 @@ namespace dcpu16.Emulator
                     ConsumeCycle(2);
                     Memory[--SP] = PC;
                     PC = Memory[operand];
+                    break;
+                case 0x02: // SEG
+                    if (!ExtendedSpecification) goto default;
+                    if (SS == 0)
+                    {
+                        SS = (ushort)((Memory[operand] * 0x4000) & 0xFFFF);
+                        AfterSegInstruction = true;
+                        ResetSegment = true;
+                    }
                     break;
                 case 0x08: // INT
                     ConsumeCycle(3);
@@ -337,9 +378,12 @@ namespace dcpu16.Emulator
                     break;
                 case 0x12: // HWI
                     ConsumeCycle(3);
-                    int hardwareNumber = Memory[operand];
-                    if (hardwareNumber >= 0 && hardwareNumber < Devices.Length)
-                        Devices[hardwareNumber].Interrupt(this);
+                    if (SS == 0 || !ExtendedSpecification)
+                    {
+                        int hardwareNumber = Memory[operand];
+                        if (hardwareNumber >= 0 && hardwareNumber < Devices.Length)
+                            Devices[hardwareNumber].Interrupt(this);
+                    }
                     break;
                 default: // unknown special instruction
                     Halted = true;
@@ -347,6 +391,8 @@ namespace dcpu16.Emulator
                         Console.WriteLine($"\nUnknown special instruction, op code: 0x{opCode.ToString("X2")}");
                     break;
             }
+
+            PostInstruction();
         }
 
         private void TriggerInterrupt(ushort message)
@@ -378,7 +424,7 @@ namespace dcpu16.Emulator
         private ushort FetchWord()
         {
             ConsumeCycle();
-            return Memory[Memory[(int)Registers.PC]++];
+            return Memory[(PC++ + FetchMemoryOffset) & MemoryMask];
         }
 
         private int GetOperandA(ushort instruction)
@@ -386,7 +432,9 @@ namespace dcpu16.Emulator
             int code = (instruction >> 10) & 0x3F;
             if (code == 0x18)
             {
-                return InstructionsToSkip > 0 ? SP + 1 : SP++;
+                return InstructionsToSkip > 0 ? 
+                    (SP + 1 + MemoryAccessOffset) & MemoryMask : 
+                    (SP++ + MemoryAccessOffset) & MemoryMask;
             }
             else if (code > 0x1F)
             {
@@ -412,29 +460,31 @@ namespace dcpu16.Emulator
                 case 0x05: return (int)Registers.Z;
                 case 0x06: return (int)Registers.I;
                 case 0x07: return (int)Registers.J;
-                case 0x08: return A;
-                case 0x09: return B;
-                case 0x0A: return C;
-                case 0x0B: return X;
-                case 0x0C: return Y;
-                case 0x0D: return Z;
-                case 0x0E: return I;
-                case 0x0F: return J;
-                case 0x10: return (A + FetchWord()) & 0xFFFF;
-                case 0x11: return (B + FetchWord()) & 0xFFFF;
-                case 0x12: return (C + FetchWord()) & 0xFFFF;
-                case 0x13: return (X + FetchWord()) & 0xFFFF;
-                case 0x14: return (Y + FetchWord()) & 0xFFFF;
-                case 0x15: return (Z + FetchWord()) & 0xFFFF;
-                case 0x16: return (I + FetchWord()) & 0xFFFF;
-                case 0x17: return (J + FetchWord()) & 0xFFFF;
-                case 0x18: return InstructionsToSkip > 0 ? SP - 1 : --SP;
-                case 0x19: return SP;
-                case 0x1A: return (SP + FetchWord()) & 0xFFFF;
+                case 0x08: return (A + MemoryAccessOffset) & MemoryMask;
+                case 0x09: return (B + MemoryAccessOffset) & MemoryMask;
+                case 0x0A: return (C + MemoryAccessOffset) & MemoryMask;
+                case 0x0B: return (X + MemoryAccessOffset) & MemoryMask;
+                case 0x0C: return (Y + MemoryAccessOffset) & MemoryMask;
+                case 0x0D: return (Z + MemoryAccessOffset) & MemoryMask;
+                case 0x0E: return (I + MemoryAccessOffset) & MemoryMask;
+                case 0x0F: return (J + MemoryAccessOffset) & MemoryMask;
+                case 0x10: return (A + FetchWord() + MemoryAccessOffset) & MemoryMask;
+                case 0x11: return (B + FetchWord() + MemoryAccessOffset) & MemoryMask;
+                case 0x12: return (C + FetchWord() + MemoryAccessOffset) & MemoryMask;
+                case 0x13: return (X + FetchWord() + MemoryAccessOffset) & MemoryMask;
+                case 0x14: return (Y + FetchWord() + MemoryAccessOffset) & MemoryMask;
+                case 0x15: return (Z + FetchWord() + MemoryAccessOffset) & MemoryMask;
+                case 0x16: return (I + FetchWord() + MemoryAccessOffset) & MemoryMask;
+                case 0x17: return (J + FetchWord() + MemoryAccessOffset) & MemoryMask;
+                case 0x18: return InstructionsToSkip > 0 ? 
+                        (SP - 1 + MemoryAccessOffset) & MemoryMask : 
+                        (--SP + MemoryAccessOffset) & MemoryMask;
+                case 0x19: return (SP + MemoryAccessOffset) & MemoryMask;
+                case 0x1A: return (SP + FetchWord() + MemoryAccessOffset) & MemoryMask;
                 case 0x1B: return (int)Registers.SP;
                 case 0x1C: return (int)Registers.PC;
                 case 0x1D: return (int)Registers.EX;
-                case 0x1E: return FetchWord();
+                case 0x1E: return (FetchWord() + MemoryAccessOffset) & MemoryMask;
                 case 0x1F: Memory[InternalLiteral] = FetchWord(); return InternalLiteral;
             }
 
@@ -444,6 +494,23 @@ namespace dcpu16.Emulator
         private void ConsumeCycle(int amount = 1)
         {
             CycleDebt += amount;
+        }
+
+        private void PostInstruction()
+        {
+            // trigger queued interrupts
+            if (AfterSegInstruction)
+            {
+                if (!InterruptQueueingEnabled && InterruptQueue.Count > 0)
+                    TriggerInterrupt(InterruptQueue.Dequeue());
+
+                if (ResetSegment)
+                    SS = 0;
+            }
+            else
+            {
+                AfterSegInstruction = true;
+            }
         }
 
         public void DumpRegisters()
@@ -462,6 +529,8 @@ namespace dcpu16.Emulator
             Console.WriteLine($"SP = {SP.ToString("X4")}\t{SP}\t{(short)SP}");
             Console.WriteLine($"EX = {EX.ToString("X4")}\t{EX}\t{(short)EX}");
             Console.WriteLine($"IA = {IA.ToString("X4")}\t{IA}\t{(short)IA}");
+            if (ExtendedSpecification)
+                Console.WriteLine($"SS = {SS.ToString("X4")}\t{SS}\t{(short)SS}");
             Console.WriteLine("=================================");
         }
 
@@ -501,9 +570,6 @@ namespace dcpu16.Emulator
                 while (CycleDebt <= 0 && !Halted)
                 {
                     ExecuteInstruction();
-                    if (!InterruptQueueingEnabled && InterruptQueue.Count > 0)
-                        TriggerInterrupt(InterruptQueue.Dequeue());
-
                 }
 
                 Thread.Sleep(10);

@@ -6,7 +6,7 @@ Manufacturer ID:	0x44464C54
 
 (uses file specified in parentheses)
 
-Disk size is 1 MB by default
+Disk size is 1.44 MB by default
 
 Interrupts:
 
@@ -22,3 +22,6 @@ A = 2:
 	disk starting at address X:Y. Copies a total of C
 	words. Out of bounds writes in disk fail silently.
 	Halts dcpu for C cycles.
+
+Disk will use 16 bit addresses within current DCPU
+memory segment.

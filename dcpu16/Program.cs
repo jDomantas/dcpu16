@@ -110,7 +110,7 @@ namespace dcpu16
             return asm.GetMemoryDump();
         }
 
-        static void RunEmulator(ushort[] memoryImage, List<string> hardware, bool dumpregs, int radiation)
+        static void RunEmulator(ushort[] memoryImage, List<string> hardware, bool dumpregs, int radiation, bool extendedSpec)
         {
             if (hardware.Count == 0)
             {
@@ -168,7 +168,7 @@ namespace dcpu16
             if (containsInvalid)
                 return;
 
-            Dcpu emulator = new Dcpu(hardwareDevices.ToArray());
+            Dcpu emulator = new Dcpu(hardwareDevices.ToArray(), extendedSpec);
             for (int i = 0; i < memoryImage.Length; i++)
                 emulator.Memory[i] = memoryImage[i];
 
@@ -252,18 +252,18 @@ namespace dcpu16
             }
         }
 
-        static void LoadBinary(string source, List<string> hardware, bool dumpregs, int radiation)
+        static void LoadBinary(string source, List<string> hardware, bool dumpregs, int radiation, bool vanilla)
         {
             ushort[] file = LoadBinaryFile(source);
 
-            RunEmulator(file, hardware, dumpregs, radiation);
+            RunEmulator(file, hardware, dumpregs, radiation, !vanilla);
         }
 
-        static void RunProgram(string source, List<string> hardware, bool dumpregs, int radiation)
+        static void RunProgram(string source, List<string> hardware, bool dumpregs, int radiation, bool vanilla)
         {
             ushort[] file = AssembleSource(source);
 
-            RunEmulator(file, hardware, dumpregs, radiation);
+            RunEmulator(file, hardware, dumpregs, radiation, !vanilla);
         }
 
         static void PrintHelp()
@@ -292,6 +292,9 @@ namespace dcpu16
             Console.WriteLine();
             Console.WriteLine("    -dump");
             Console.WriteLine("        dump registers after emulator halts");
+            Console.WriteLine();
+            Console.WriteLine("    -vanilla");
+            Console.WriteLine("        use original specification");
             Environment.Exit(0);
         }
 
@@ -312,6 +315,7 @@ namespace dcpu16
                 output = null;
             bool showHelp = false;
             bool dumpRegisters = false;
+            bool vanilla = false;
             int radiation = 0;
 
             var options = new OptionSet() {
@@ -334,6 +338,8 @@ namespace dcpu16
                     v => dumpRegisters = v != null },
                 { "r=|radiation=",  "set enviroment radiation setting",
                     (int v) => radiation = v },
+                { "v|vanilla",  "use original specification",
+                    v => vanilla = v != null },
             };
             
             options.Parse(args);
@@ -362,14 +368,14 @@ namespace dcpu16
                 if (run != null || assemble != null || disassemble != null || output != null)
                     IncorrectUsage();
                 else
-                    LoadBinary(load, hardware, dumpRegisters, radiation);
+                    LoadBinary(load, hardware, dumpRegisters, radiation, vanilla);
             }
             else if (run != null)
             {
                 if (load != null || assemble != null || disassemble != null || output != null)
                     IncorrectUsage();
                 else
-                    RunProgram(run, hardware, dumpRegisters, radiation);
+                    RunProgram(run, hardware, dumpRegisters, radiation, vanilla);
             }
             else
                 IncorrectUsage();

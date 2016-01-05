@@ -57,12 +57,15 @@ namespace dcpu16.Hardware.FloppyDisk
                     break;
                 case 1:
                     for (int i = 0; i < dcpu.C; i++)
-                        dcpu.Memory[(dcpu.B + i) & 0xFFFF] = (start + i >= Memory.Length) ? (ushort)0 : Memory[start + i];
+                        dcpu.Memory[(((dcpu.B + i) & 0xFFFF) + dcpu.MemoryAccessOffset) & dcpu.MemoryMask] = 
+                            (start + i > Memory.Length) ? 
+                                (ushort)0 : 
+                                Memory[start + i];
                     dcpu.CycleDebt += dcpu.C;
                     break;
                 case 2:
                     for (int i = 0; i < dcpu.C && i + start < Memory.Length; i++)
-                        Memory[start + i] = dcpu.Memory[(dcpu.B + i) & 0xFFFF];
+                        Memory[start + i] = dcpu.Memory[(((dcpu.B + i) & 0xFFFF) + dcpu.MemoryAccessOffset) & dcpu.MemoryMask];
                     dcpu.CycleDebt += dcpu.C;
                     break;
             }

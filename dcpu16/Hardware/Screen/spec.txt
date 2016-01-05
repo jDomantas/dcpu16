@@ -93,6 +93,11 @@ Palette ram:
    lighter color.
    
 
+Memory segments:
+	LEM1802 will use absolute address for mapped ram, but dumping current
+	recources will wrap around at 0x10000 words in current segment.
+
+
 A message from Ola:
    Hello!
    
