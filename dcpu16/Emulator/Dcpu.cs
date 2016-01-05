@@ -490,7 +490,7 @@ namespace dcpu16.Emulator
         private void PostInstruction()
         {
             // trigger queued interrupts
-            if (AfterSegInstruction)
+            if (!AfterSegInstruction)
             {
                 if (!InterruptQueueingEnabled && InterruptQueue.Count > 0)
                     TriggerInterrupt(InterruptQueue.Dequeue());
@@ -500,7 +500,7 @@ namespace dcpu16.Emulator
             }
             else
             {
-                AfterSegInstruction = true;
+                AfterSegInstruction = false;
             }
         }
 
