@@ -122,6 +122,7 @@ namespace dcpu16.Emulator
                 return;
             }
 
+            int newEX;
             int signedA = (short)Memory[a];
             int signedB = (short)Memory[b];
             if (signedA < 0)
@@ -137,30 +138,26 @@ namespace dcpu16.Emulator
                     break;
                 case 0x02: // ADD
                     ConsumeCycle(1);
-                    if (Memory[a] + Memory[b] >= 0x10000)
-                        Memory[(int)Registers.EX] = 1;
-                    else
-                        Memory[(int)Registers.EX] = 0;
+                    newEX = (Memory[a] + Memory[b]) >> 16;
                     Memory[b] += Memory[a];
+                    EX = (ushort)(newEX & 0xFFFF);
                     break;
                 case 0x03: // SUB
                     ConsumeCycle(1);
-                    if (Memory[a] > Memory[b])
-                        Memory[(int)Registers.EX] = 0xFFFF;
-                    else
-                        Memory[(int)Registers.EX] = 0;
+                    newEX = (Memory[a] - Memory[b]) >> 16;
                     Memory[b] -= Memory[a];
+                    EX = (ushort)(newEX & 0xFFFF);
                     break;
                 case 0x04: // MUL
                     ConsumeCycle(1);
                     uint product = (uint)Memory[a] * (uint)Memory[b];
-                    Memory[(int)Registers.EX] = (ushort)((product >> 16) & 0xFFFF);
+                    EX = (ushort)((product >> 16) & 0xFFFF);
                     Memory[b] = (ushort)(product & 0xFFFF);
                     break;
                 case 0x05: // MLI
                     ConsumeCycle(1);
                     int signedProduct = signedA * signedB;
-                    Memory[(int)Registers.EX] = (ushort)((signedProduct >> 16) & 0xFFFF);
+                    EX = (ushort)((signedProduct >> 16) & 0xFFFF);
                     Memory[b] = (ushort)(signedProduct & 0xFFFF);
                     break;
                 case 0x06: // DIV
@@ -172,7 +169,7 @@ namespace dcpu16.Emulator
                     else
                     {
                         uint quotent = ((uint)Memory[b] << 16) / (uint)Memory[a];
-                        Memory[(int)Registers.EX] = (ushort)(quotent & 0xFFFF);
+                        EX = (ushort)(quotent & 0xFFFF);
                         Memory[b] = (ushort)((quotent >> 16) & 0xFFFF);
                     }
                     break;
@@ -185,7 +182,7 @@ namespace dcpu16.Emulator
                     else
                     {
                         int signedQuotent = (Math.Abs(signedB) << 16) / signedA;
-                        Memory[(int)Registers.EX] = (ushort)(signedQuotent & 0xFFFF);
+                        EX = (ushort)(signedQuotent & 0xFFFF);
                         if (signedB < 0) signedQuotent *= -1;
                         Memory[b] = (ushort)((signedQuotent >> 16) & 0xFFFF);
                     }
@@ -214,15 +211,15 @@ namespace dcpu16.Emulator
                     Memory[b] ^= Memory[a];
                     break;
                 case 0x0D: // SHR (logical shift)
-                    Memory[(int)Registers.EX] = (ushort)((((int)Memory[b] << 16) >> Memory[a]) & 0xFFFF);
+                    EX = (ushort)((((int)Memory[b] << 16) >> Memory[a]) & 0xFFFF);
                     Memory[b] >>= Memory[a];
                     break;
                 case 0x0E: // ASR (arithmetic shift)
-                    Memory[(int)Registers.EX] = (ushort)((((uint)Memory[b] << 16) >> Memory[a]) & 0xFFFF);
+                    EX = (ushort)((((uint)Memory[b] << 16) >> Memory[a]) & 0xFFFF);
                     Memory[b] = (ushort)(((short)Memory[b] >> Memory[a]) & 0xFFFF);
                     break;
                 case 0x0F: // SHL
-                    Memory[(int)Registers.EX] = (ushort)((((uint)Memory[b] << Memory[a]) >> 16) & 0xFFFF);
+                    EX = (ushort)((((uint)Memory[b] << Memory[a]) >> 16) & 0xFFFF);
                     Memory[b] <<= Memory[a];
                     break;
                 case 0x10: // IFB
@@ -267,21 +264,15 @@ namespace dcpu16.Emulator
                     break;
                 case 0x1A: // ADX
                     ConsumeCycle(2);
-                    ushort adx_ex = Memory[(int)Registers.EX];
-                    if ((uint)Memory[b] + (uint)Memory[a] + (uint)adx_ex >= 0x10000)
-                        Memory[(int)Registers.EX] = 1;
-                    else
-                        Memory[(int)Registers.EX] = 0;
-                    Memory[b] += (ushort)((Memory[a] + adx_ex) & 0xFFFF);
+                    newEX = (Memory[a] + Memory[b] + EX) >> 16;
+                    Memory[b] += (ushort)((Memory[a] + EX) & 0xFFFF);
+                    EX = (ushort)(newEX & 0xFFFF);
                     break;
                 case 0x1B: // SBX
                     ConsumeCycle(2);
-                    ushort sbx_ex = Memory[(int)Registers.EX];
-                    if (((Memory[b] + sbx_ex) & 0xFFFF) < Memory[a])
-                        Memory[(int)Registers.EX] = 0xFFFF;
-                    else
-                        Memory[(int)Registers.EX] = 0;
-                    Memory[b] += (ushort)((sbx_ex - Memory[a]) & 0xFFFF);
+                    newEX = (((Memory[b] + EX) & 0xFFFF) - Memory[a]) >> 16;
+                    Memory[b] += (ushort)((EX - Memory[a]) & 0xFFFF);
+                    EX = (ushort)(newEX & 0xFFFF);
                     break;
                 case 0x1C: // JSG
                     if (!ExtendedSpecification) goto default;
