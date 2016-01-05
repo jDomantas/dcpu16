@@ -26,10 +26,11 @@ namespace dcpu16.Emulator
             EX = 0x1000A,
             IA = 0x1000B
         }
-
+        
         public const int MemoryLength = 0x10000;
         public const int RegisterCount = 12;
         private const int InternalLiteral = 0x1000C;
+        private const int InternalLiteral2 = 0x1000D;
 
         public ushort[] Memory;
         public int CycleDebt;
@@ -55,7 +56,7 @@ namespace dcpu16.Emulator
 
         public Dcpu(IHardware[] devices)
         {
-            Memory = new ushort[MemoryLength + RegisterCount + 1];
+            Memory = new ushort[MemoryLength + RegisterCount + 2];
             InstructionsToSkip = 0;
             CycleDebt = 0;
             InterruptQueueingEnabled = false;
@@ -381,8 +382,13 @@ namespace dcpu16.Emulator
             }
             else if (code > 0x1F)
             {
-                Memory[InternalLiteral] = (ushort)(code - 0x21);
-                return InternalLiteral;
+                Memory[InternalLiteral2] = (ushort)(code - 0x21);
+                return InternalLiteral2;
+            }
+            else if (code == 0x1F)
+            {
+                Memory[InternalLiteral2] = FetchWord();
+                return InternalLiteral2;
             }
             else
             {
