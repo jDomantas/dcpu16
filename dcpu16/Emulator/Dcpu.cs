@@ -99,6 +99,9 @@ namespace dcpu16.Emulator
                 if (opCode >= 0x10 && opCode <= 0x17) // if instruction
                     InstructionsToSkip++;
 
+                if (InstructionsToSkip == 0)
+                    PostInstruction();
+
                 return;
             }
 
@@ -271,6 +274,9 @@ namespace dcpu16.Emulator
                     Console.WriteLine($"\nUnknown instruction, op code: 0x{opCode.ToString("X2")}");
                     break;
             }
+
+            if (InstructionsToSkip == 0)
+                PostInstruction();
         }
 
         private void ExecuteSpecialInstruction(ushort instruction)
@@ -282,6 +288,10 @@ namespace dcpu16.Emulator
             if (InstructionsToSkip > 0)
             {
                 InstructionsToSkip--;
+                
+                if (InstructionsToSkip == 0)
+                    PostInstruction();
+
                 return;
             }
 
@@ -339,6 +349,9 @@ namespace dcpu16.Emulator
                         Console.WriteLine($"\nUnknown special instruction, op code: 0x{opCode.ToString("X2")}");
                     break;
             }
+
+            if (InstructionsToSkip == 0)
+                PostInstruction();
         }
 
         private void TriggerInterrupt(ushort message)
@@ -441,6 +454,13 @@ namespace dcpu16.Emulator
         private void ConsumeCycle(int amount = 1)
         {
             CycleDebt += amount;
+        }
+
+        private void PostInstruction()
+        {
+            // trigger queued interrupts
+            if (!InterruptQueueingEnabled && InterruptQueue.Count > 0)
+                TriggerInterrupt(InterruptQueue.Dequeue());
         }
 
         public void DumpRegisters()
