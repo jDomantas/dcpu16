@@ -64,6 +64,14 @@
     <Compile Include="Hardware\Screen\ScreenForm.Designer.cs">
       <DependentUpon>ScreenForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="Hardware\SPED\SPEDForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Hardware\SPED\SPEDForm.Designer.cs">
+      <DependentUpon>SPEDForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Hardware\SPED\Vector.cs" />
+    <Compile Include="Hardware\SPED\ViewMatrix.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -75,10 +83,14 @@
     <Content Include="Hardware\FloppyDisk\spec.txt" />
     <Content Include="Hardware\Keyboard\spec.txt" />
     <Content Include="Hardware\Screen\spec.txt" />
+    <Content Include="Hardware\SPED\spec.txt" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Hardware\Screen\ScreenForm.resx">
       <DependentUpon>ScreenForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Hardware\SPED\SPEDForm.resx">
+      <DependentUpon>SPEDForm.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

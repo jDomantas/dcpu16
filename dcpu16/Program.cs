@@ -5,6 +5,7 @@ using dcpu16.Hardware.Clock;
 using dcpu16.Hardware.FloppyDisk;
 using dcpu16.Hardware.Keyboard;
 using dcpu16.Hardware.Screen;
+using dcpu16.Hardware.SPED;
 using NDesk.Options;
 using System;
 using System.Collections.Generic;
@@ -136,6 +137,7 @@ namespace dcpu16
 
                 if ("clock".StartsWith(device.Item1)) hardwareDevices.Add(new Clock());
                 else if ("lem".StartsWith(device.Item1)) hardwareDevices.Add(new ScreenForm(keyboards));
+                else if ("sped".StartsWith(device.Item1)) hardwareDevices.Add(new SPEDForm());
                 else if ("floppy".StartsWith(device.Item1))
                 {
                     if (device.Item2 == null)
