@@ -119,6 +119,9 @@ namespace dcpu16.Emulator
                 if (opCode >= 0x10 && opCode <= 0x17) // if instruction
                     InstructionsToSkip++;
 
+                if (InstructionsToSkip == 0)
+                    PostInstruction();
+
                 return;
             }
 
@@ -301,7 +304,8 @@ namespace dcpu16.Emulator
                     break;
             }
 
-            PostInstruction();
+            if (InstructionsToSkip == 0)
+                PostInstruction();
         }
 
         private void ExecuteSpecialInstruction(ushort instruction)
@@ -313,6 +317,10 @@ namespace dcpu16.Emulator
             if (InstructionsToSkip > 0)
             {
                 InstructionsToSkip--;
+                
+                if (InstructionsToSkip == 0)
+                    PostInstruction();
+
                 return;
             }
 
@@ -383,7 +391,8 @@ namespace dcpu16.Emulator
                     break;
             }
 
-            PostInstruction();
+            if (InstructionsToSkip == 0)
+                PostInstruction();
         }
 
         private void TriggerInterrupt(ushort message)
