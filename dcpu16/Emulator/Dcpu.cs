@@ -34,6 +34,7 @@ namespace dcpu16.Emulator
         public const int RegisterCount = 13;
         public int MemoryMask { get; private set; }
         private const int InternalLiteral = 0x4000D;
+        private const int InternalLiteral2 = 0x4000E;
 
         public ushort[] Memory;
         public int CycleDebt;
@@ -65,7 +66,7 @@ namespace dcpu16.Emulator
 
         public Dcpu(IHardware[] devices, bool useExtendedSpecification)
         {
-            Memory = new ushort[MemoryLength + RegisterCount + 1];
+            Memory = new ushort[MemoryLength + RegisterCount + 2];
             InstructionsToSkip = 0;
             CycleDebt = 0;
             InterruptQueueingEnabled = false;
@@ -432,14 +433,19 @@ namespace dcpu16.Emulator
             int code = (instruction >> 10) & 0x3F;
             if (code == 0x18)
             {
-                return InstructionsToSkip > 0 ? 
-                    (SP + 1 + MemoryAccessOffset) & MemoryMask : 
+                return InstructionsToSkip > 0 ?
+                    (SP + 1 + MemoryAccessOffset) & MemoryMask :
                     (SP++ + MemoryAccessOffset) & MemoryMask;
             }
             else if (code > 0x1F)
             {
-                Memory[InternalLiteral] = (ushort)(code - 0x21);
-                return InternalLiteral;
+                Memory[InternalLiteral2] = (ushort)(code - 0x21);
+                return InternalLiteral2;
+            }
+            else if (code == 0x1F)
+            {
+                Memory[InternalLiteral2] = FetchWord();
+                return InternalLiteral2;
             }
             else
             {
