@@ -281,8 +281,11 @@ namespace dcpu16.Emulator
                 case 0x1C: // JSG
                     if (!ExtendedSpecification) goto default;
                     ConsumeCycle(1);
-                    if (SS == 0)
+                    // current segment is 0, or is set temporarily
+                    if (SS == 0 || ResetSegment)
                     {
+                        // prevent segment reset after jumping
+                        ResetSegment = false;
                         SS = Memory[a];
                         PC = Memory[b];
                     }
@@ -329,12 +332,13 @@ namespace dcpu16.Emulator
             {
                 case 0x01: // JSR
                     ConsumeCycle(2);
-                    Memory[--SP] = PC;
+                    Memory[(--SP + MemoryAccessOffset) & MemoryMask] = PC;
                     PC = Memory[operand];
                     break;
                 case 0x02: // SEG
                     if (!ExtendedSpecification) goto default;
-                    if (SS == 0)
+                    // current segment is 0, or is set temporarily
+                    if (SS == 0 || ResetSegment)
                     {
                         SS = (ushort)((Memory[operand] * 0x4000) & 0xFFFF);
                         AfterSegInstruction = true;
@@ -354,8 +358,10 @@ namespace dcpu16.Emulator
                 case 0x0B: // RFI
                     ConsumeCycle(2);
                     InterruptQueueingEnabled = false;
-                    A = Memory[SP++]; // pop A
-                    PC = Memory[SP++]; // pop PC
+                    A = Memory[(SP++ + MemoryAccessOffset) & MemoryMask]; // pop A
+                    PC = Memory[(SP++ + MemoryAccessOffset) & MemoryMask]; // pop PC
+                    if (ExtendedSpecification)
+                        SS = Memory[(SP++ + MemoryAccessOffset) & MemoryMask]; // pop SS
                     break;
                 case 0x0C: // IAQ
                     ConsumeCycle(1);
@@ -378,7 +384,8 @@ namespace dcpu16.Emulator
                     break;
                 case 0x12: // HWI
                     ConsumeCycle(3);
-                    if (SS == 0 || !ExtendedSpecification)
+                    // current segment is 0, or is set temporarily
+                    if ((SS == 0 || ResetSegment) || !ExtendedSpecification)
                     {
                         int hardwareNumber = Memory[operand];
                         if (hardwareNumber >= 0 && hardwareNumber < Devices.Length)
@@ -409,6 +416,10 @@ namespace dcpu16.Emulator
 
                 InterruptQueueingEnabled = true;
 
+                SS = 0;
+                
+                if (ExtendedSpecification)
+                    Memory[--SP] = SS;
                 Memory[--SP] = PC;
                 Memory[--SP] = A;
                 PC = IA;
@@ -512,6 +523,8 @@ namespace dcpu16.Emulator
 
                 if (ResetSegment)
                     SS = 0;
+
+                ResetSegment = false;
             }
             else
             {
