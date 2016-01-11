@@ -90,8 +90,8 @@ namespace dcpu16.Emulator
                 return;
             }
 
-            int b = GetOperandB(instruction);
             int a = GetOperandA(instruction);
+            int b = GetOperandB(instruction);
 
             if (InstructionsToSkip > 0)
             {
