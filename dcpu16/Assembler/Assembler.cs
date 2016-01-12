@@ -69,7 +69,7 @@ namespace dcpu16.Assembler
                 ["HLT"] = (line, operands) => AssembleNoOperandInstruction(line, 0, operands),
 
                 // preprocessor
-                ["DEF"] = (line, operands) => AddDefinition(line, operands),
+                [".DEFINE"] = (line, operands) => AddDefinition(line, operands),
             };
         }
 
