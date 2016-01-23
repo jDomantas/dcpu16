@@ -518,9 +518,6 @@ namespace dcpu16.Emulator
                 while (CycleDebt <= 0 && !Halted)
                 {
                     ExecuteInstruction();
-                    if (!InterruptQueueingEnabled && InterruptQueue.Count > 0)
-                        TriggerInterrupt(InterruptQueue.Dequeue());
-
                 }
 
                 Thread.Sleep(10);
