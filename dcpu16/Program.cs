@@ -272,14 +272,14 @@ namespace dcpu16
             Console.WriteLine("    dcpu16");
             Console.WriteLine("        load default firmware and run");
             Console.WriteLine();
-            Console.WriteLine("	   dcpu16 -run=program.dasm");
+            Console.WriteLine("    dcpu16 -run=program.dasm");
             Console.WriteLine("        assemble and run program");
             Console.WriteLine();
             Console.WriteLine("    dcpu -bin=program.bin");
             Console.WriteLine("        load and run binary file");
             Console.WriteLine();
             Console.WriteLine("    dcpu -asm=program.dasm [-o=output.dat]");
-            Console.WriteLine("	       assemble program and create binary file");
+            Console.WriteLine("        assemble program and create binary file");
             Console.WriteLine();
             Console.WriteLine("    dcpu -disasm=program.bin [-o=ouput.dasm]");
             Console.WriteLine("        dissasemble binary file");
