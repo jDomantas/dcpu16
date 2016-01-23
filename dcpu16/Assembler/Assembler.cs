@@ -593,8 +593,8 @@ namespace dcpu16.Assembler
             var operandB = CompileOperand(operands[0].ToUpper(), 1);
             var operandA = CompileOperand(operands[1].ToUpper(), operandB.Item2 == -1 ? 1 : 2, true);
             MemoryDump.Add((ushort)(opCode | (operandB.Item1 << 5) | (operandA.Item1 << 10)));
-            if (operandB.Item2 != -1) MemoryDump.Add((ushort)(operandB.Item2 & 0xFFFF));
             if (operandA.Item2 != -1) MemoryDump.Add((ushort)(operandA.Item2 & 0xFFFF));
+            if (operandB.Item2 != -1) MemoryDump.Add((ushort)(operandB.Item2 & 0xFFFF));
         }
 
         private void AssembleSpecialInstruction(string line, ushort opCode, string[] operands)
