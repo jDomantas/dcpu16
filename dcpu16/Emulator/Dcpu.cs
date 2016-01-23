@@ -482,7 +482,7 @@ namespace dcpu16.Emulator
             Console.WriteLine("=================================");
         }
 
-        public void Run(int radiation)
+        public void Run(int radiation, int cyclesPerSecond)
         {
             Stopwatch clock = new Stopwatch();
             Random rnd = new Random((int)DateTime.Now.Ticks);
@@ -492,7 +492,6 @@ namespace dcpu16.Emulator
             Halted = false;
 
             long currentCycles = 0;
-            long cyclesPerSecond = 100000;
             
             while (!Halted)
             {

@@ -110,8 +110,14 @@ namespace dcpu16
             return asm.GetMemoryDump();
         }
 
-        static void RunEmulator(ushort[] memoryImage, List<string> hardware, bool dumpregs, int radiation)
+        static void RunEmulator(ushort[] memoryImage, List<string> hardware, bool dumpregs, int radiation, int clock)
         {
+            if (clock <= 0)
+            {
+                Console.WriteLine("Error: clock speed must be positive");
+                return;
+            }
+
             if (hardware.Count == 0)
             {
                 hardware.Add("clock");
@@ -176,7 +182,7 @@ namespace dcpu16
 
             try
             {
-                emulator.Run(radiation);
+                emulator.Run(radiation, clock);
                 if (dumpregs)
                     emulator.DumpRegisters();
             }
@@ -252,18 +258,18 @@ namespace dcpu16
             }
         }
 
-        static void LoadBinary(string source, List<string> hardware, bool dumpregs, int radiation)
+        static void LoadBinary(string source, List<string> hardware, bool dumpregs, int radiation, int clock)
         {
             ushort[] file = LoadBinaryFile(source);
 
-            RunEmulator(file, hardware, dumpregs, radiation);
+            RunEmulator(file, hardware, dumpregs, radiation, clock);
         }
 
-        static void RunProgram(string source, List<string> hardware, bool dumpregs, int radiation)
+        static void RunProgram(string source, List<string> hardware, bool dumpregs, int radiation, int clock)
         {
             ushort[] file = AssembleSource(source);
 
-            RunEmulator(file, hardware, dumpregs, radiation);
+            RunEmulator(file, hardware, dumpregs, radiation, clock);
         }
 
         static void PrintHelp()
@@ -292,6 +298,9 @@ namespace dcpu16
             Console.WriteLine();
             Console.WriteLine("    -dump");
             Console.WriteLine("        dump registers after emulator halts");
+            Console.WriteLine();
+            Console.WriteLine("    -c=value");
+            Console.WriteLine("        set clock speed (in cycles per second, default: 100000)");
             Environment.Exit(0);
         }
 
@@ -313,6 +322,7 @@ namespace dcpu16
             bool showHelp = false;
             bool dumpRegisters = false;
             int radiation = 0;
+            int clock = 100000;
 
             var options = new OptionSet() {
                 { "d=|device=", "add hardware device",
@@ -334,6 +344,8 @@ namespace dcpu16
                     v => dumpRegisters = v != null },
                 { "r=|radiation=",  "set enviroment radiation setting",
                     (int v) => radiation = v },
+                { "c=|clock=",  "set clock speed",
+                    (int c) => clock = c },
             };
             
             options.Parse(args);
@@ -362,14 +374,14 @@ namespace dcpu16
                 if (run != null || assemble != null || disassemble != null || output != null)
                     IncorrectUsage();
                 else
-                    LoadBinary(load, hardware, dumpRegisters, radiation);
+                    LoadBinary(load, hardware, dumpRegisters, radiation, clock);
             }
             else if (run != null)
             {
                 if (load != null || assemble != null || disassemble != null || output != null)
                     IncorrectUsage();
                 else
-                    RunProgram(run, hardware, dumpRegisters, radiation);
+                    RunProgram(run, hardware, dumpRegisters, radiation, clock);
             }
             else
                 IncorrectUsage();
