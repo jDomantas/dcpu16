@@ -492,17 +492,28 @@ namespace dcpu16.Emulator
             Halted = false;
 
             long currentCycles = 0;
-            
+            long stdCyclesPerSecond = 100000;
+            long stdCurrentCycles = 0;
+
             while (!Halted)
             {
                 long ticks = clock.ElapsedTicks;
                 long cycles = (ticks * cyclesPerSecond) / Stopwatch.Frequency;
                 long passed = cycles - currentCycles;
+
+                long stdCycles = (ticks * stdCyclesPerSecond) / Stopwatch.Frequency;
+                long stdPassed = stdCycles - stdCurrentCycles;
+
                 if (cycles > currentCycles)
                 {
                     CycleDebt -= (int)passed;
                     currentCycles = cycles;
-                    for (int i = 0; i < passed; i++)
+                }
+
+                if (stdCycles > stdCurrentCycles)
+                {
+                    stdCurrentCycles = stdCycles;
+                    for (int i = 0; i < stdPassed; i++)
                     {
                         // flip random bits depending on radiation setting
                         int randVal = rnd.Next(100000);
@@ -510,9 +521,9 @@ namespace dcpu16.Emulator
                             Memory[rnd.Next(0x10000)] ^= (ushort)(1 << rnd.Next(16));
                     }
                 }
-
+                
                 for (int i = 0; i < Devices.Length; i++)
-                    Devices[i].UpdateInternal(this, passed);
+                    Devices[i].UpdateInternal(this, stdPassed);
 
                 while (CycleDebt <= 0 && !Halted)
                 {
