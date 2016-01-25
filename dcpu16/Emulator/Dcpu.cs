@@ -129,7 +129,7 @@ namespace dcpu16.Emulator
             switch (opCode)
             {
                 case 0x01: // SET
-                    Memory[b] = Memory[a];
+                    WriteValue(b, Memory[a]);
                     break;
                 case 0x02: // ADD
                     ConsumeCycle(1);
