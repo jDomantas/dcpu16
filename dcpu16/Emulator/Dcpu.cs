@@ -330,6 +330,16 @@ namespace dcpu16.Emulator
                         if (WriteValue(--SP, PC)) break;
                         PC = Memory[operand];
                         break;
+                    case 0x02: // PAG
+                        Memory[operand] = PA;
+                        break;
+                    case 0x03: // PAS
+                        PA = Memory[operand];
+                        break;
+                    case 0x04: // EPM
+                        ProtectedMode = true;
+                        PC = Memory[operand];
+                        break;
                     case 0x08: // INT
                         ConsumeCycle(3);
                         TriggerInterrupt(Memory[operand]);
@@ -352,6 +362,13 @@ namespace dcpu16.Emulator
                             InterruptQueueingEnabled = true;
                         else
                             InterruptQueueingEnabled = false;
+                        break;
+                    case 0x0D: // RPI
+                        ConsumeCycle(2);
+                        ProtectedMode = true;
+                        InterruptQueueingEnabled = false;
+                        A = Memory[SP++]; // pop A
+                        PC = Memory[SP++]; // pop PC
                         break;
                     case 0x10: // HWN
                         ConsumeCycle(1);
