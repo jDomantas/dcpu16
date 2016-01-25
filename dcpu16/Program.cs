@@ -217,7 +217,7 @@ namespace dcpu16
                             writer.WriteLine($"{start.ToString("X4")}: {memory.PadRight(14)}    {instr} ; cut off");
                             break;
                         }
-                        int index = instr.IndexOf("next_word");
+                        int index = instr.LastIndexOf("next_word");
                         ushort next = fileData[i++];
                         instr = instr.Substring(0, index) + next.ToString("X4") + instr.Substring(index + 9);
                         memory = memory + " " + next.ToString("X4");
