@@ -24,11 +24,12 @@ namespace dcpu16.Emulator
             PC = 0x10008,
             SP = 0x10009,
             EX = 0x1000A,
-            IA = 0x1000B
+            IA = 0x1000B,
+            PA = 0x1000E
         }
         
         public const int MemoryLength = 0x10000;
-        public const int RegisterCount = 12;
+        public const int RegisterCount = 13;
         private const int InternalLiteral = 0x1000C;
         private const int InternalLiteral2 = 0x1000D;
 
@@ -38,6 +39,7 @@ namespace dcpu16.Emulator
         private bool InterruptQueueingEnabled;
         private Queue<ushort> InterruptQueue;
         private bool Halted;
+        private bool ProtectedMode;
 
         public ushort A { get { return Memory[(int)Registers.A]; } set { Memory[(int)Registers.A] = value; } }
         public ushort B { get { return Memory[(int)Registers.B]; } set { Memory[(int)Registers.B] = value; } }
@@ -51,6 +53,7 @@ namespace dcpu16.Emulator
         public ushort SP { get { return Memory[(int)Registers.SP]; } set { Memory[(int)Registers.SP] = value; } }
         public ushort EX { get { return Memory[(int)Registers.EX]; } set { Memory[(int)Registers.EX] = value; } }
         public ushort IA { get { return Memory[(int)Registers.IA]; } set { Memory[(int)Registers.IA] = value; } }
+        public ushort PA { get { return Memory[(int)Registers.PA]; } set { Memory[(int)Registers.PA] = value; } }
 
         private IHardware[] Devices;
 
@@ -61,6 +64,7 @@ namespace dcpu16.Emulator
             CycleDebt = 0;
             InterruptQueueingEnabled = false;
             InterruptQueue = new Queue<ushort>();
+            ProtectedMode = false;
 
             Devices = devices;
         }
@@ -79,6 +83,14 @@ namespace dcpu16.Emulator
         {
             // All cycle costs are reduced by one because it
             // takes one cycle to fetch instruction code.
+            
+            // attempting to execute protected memory
+            if (ProtectedMode && PC < PA)
+            {
+                ConsumeCycle();
+                ProtectedModeFault();
+                return;
+            }
 
             ushort instruction = FetchWord();
 
@@ -122,88 +134,97 @@ namespace dcpu16.Emulator
                 case 0x02: // ADD
                     ConsumeCycle(1);
                     newEX = (Memory[a] + Memory[b]) >> 16;
-                    Memory[b] += Memory[a];
+                    if (WriteValue(b, Memory[a] + Memory[b])) break;
                     EX = (ushort)(newEX & 0xFFFF);
                     break;
                 case 0x03: // SUB
                     ConsumeCycle(1);
                     newEX = (Memory[a] - Memory[b]) >> 16;
-                    Memory[b] -= Memory[a];
+                    if (WriteValue(b, Memory[b] - Memory[a])) break;
                     EX = (ushort)(newEX & 0xFFFF);
                     break;
                 case 0x04: // MUL
                     ConsumeCycle(1);
                     uint product = (uint)Memory[a] * (uint)Memory[b];
-                    EX = (ushort)((product >> 16) & 0xFFFF);
-                    Memory[b] = (ushort)(product & 0xFFFF);
+                    newEX = (int)((product >> 16) & 0xFFFF);
+                    if (WriteValue(b, (ushort)(product & 0xFFFF))) break;
+                    EX = (ushort)newEX;
                     break;
                 case 0x05: // MLI
                     ConsumeCycle(1);
                     int signedProduct = signedA * signedB;
-                    EX = (ushort)((signedProduct >> 16) & 0xFFFF);
-                    Memory[b] = (ushort)(signedProduct & 0xFFFF);
+                    newEX = ((signedProduct >> 16) & 0xFFFF);
+                    if (WriteValue(b, (ushort)(signedProduct & 0xFFFF))) break;
+                    EX = (ushort)newEX;
                     break;
                 case 0x06: // DIV
                     ConsumeCycle(2);
                     if (Memory[a] == 0)
                     {
-                        EX = Memory[b] = 0;
+                        if (WriteValue(b, 0)) break;
+                        EX = 0;
                     }
                     else
                     {
                         uint quotent = ((uint)Memory[b] << 16) / (uint)Memory[a];
-                        EX = (ushort)(quotent & 0xFFFF);
-                        Memory[b] = (ushort)((quotent >> 16) & 0xFFFF);
+                        newEX = (ushort)(quotent & 0xFFFF);
+                        if (WriteValue(b, (ushort)((quotent >> 16) & 0xFFFF))) break;
+                        EX = (ushort)newEX;
                     }
                     break;
                 case 0x07: // DVI
                     ConsumeCycle(2);
                     if (Memory[a] == 0)
                     {
-                        EX = Memory[b] = 0;
+                        if (WriteValue(b, 0)) break;
+                        EX = 0;
                     }
                     else
                     {
                         int signedQuotent = (Math.Abs(signedB) << 16) / signedA;
-                        EX = (ushort)(signedQuotent & 0xFFFF);
+                        newEX = (ushort)(signedQuotent & 0xFFFF);
                         if (signedB < 0) signedQuotent *= -1;
-                        Memory[b] = (ushort)((signedQuotent >> 16) & 0xFFFF);
+                        if (WriteValue(b, (ushort)((signedQuotent >> 16) & 0xFFFF))) break;
+                        EX = (ushort)newEX;
                     }
                     break;
                 case 0x08: // MOD
                     ConsumeCycle(2);
                     if (Memory[a] == 0)
-                        Memory[b] = 0;
+                        WriteValue(b, 0);
                     else
-                        Memory[b] %= Memory[a];
+                        WriteValue(b, Memory[b] % Memory[a]);
                     break;
                 case 0x09: // MDI
                     ConsumeCycle(2);
                     if (Memory[a] == 0)
-                        Memory[b] = 0;
+                        WriteValue(b, 0);
                     else
-                        Memory[b] = (ushort)((Math.Abs(signedB) % signedA * (signedB < 0 ? -1 : 1)) & 0xFFFF);
+                        WriteValue(b, (ushort)((Math.Abs(signedB) % signedA * (signedB < 0 ? -1 : 1)) & 0xFFFF));
                     break;
                 case 0x0A: // AND
-                    Memory[b] &= Memory[a];
+                    WriteValue(b, Memory[b] & Memory[a]);
                     break;
                 case 0x0B: // OR (BOR)
-                    Memory[b] |= Memory[a];
+                    WriteValue(b, Memory[b] | Memory[a]);
                     break;
                 case 0x0C: // XOR
-                    Memory[b] ^= Memory[a];
+                    WriteValue(b, Memory[b] ^ Memory[a]);
                     break;
                 case 0x0D: // SHR (logical shift)
-                    EX = (ushort)((((int)Memory[b] << 16) >> Memory[a]) & 0xFFFF);
-                    Memory[b] >>= Memory[a];
+                    newEX = (ushort)((((int)Memory[b] << 16) >> Memory[a]) & 0xFFFF);
+                    if (WriteValue(b, Memory[b] >> Memory[a])) break;
+                    EX = (ushort)newEX;
                     break;
                 case 0x0E: // ASR (arithmetic shift)
-                    EX = (ushort)((((uint)Memory[b] << 16) >> Memory[a]) & 0xFFFF);
-                    Memory[b] = (ushort)(((short)Memory[b] >> Memory[a]) & 0xFFFF);
+                    newEX = (ushort)((((uint)Memory[b] << 16) >> Memory[a]) & 0xFFFF);
+                    if (WriteValue(b, (ushort)(((short)Memory[b] >> Memory[a]) & 0xFFFF))) break;
+                    EX = (ushort)newEX;
                     break;
                 case 0x0F: // SHL
-                    EX = (ushort)((((uint)Memory[b] << Memory[a]) >> 16) & 0xFFFF);
-                    Memory[b] <<= Memory[a];
+                    newEX = (ushort)((((uint)Memory[b] << Memory[a]) >> 16) & 0xFFFF);
+                    if (WriteValue(b, Memory[b] << Memory[a])) break;
+                    EX = (ushort)newEX;
                     break;
                 case 0x10: // IFB
                     ConsumeCycle(1);
@@ -248,24 +269,24 @@ namespace dcpu16.Emulator
                 case 0x1A: // ADX
                     ConsumeCycle(2);
                     newEX = (Memory[a] + Memory[b] + EX) >> 16;
-                    Memory[b] += (ushort)((Memory[a] + EX) & 0xFFFF);
+                    if (WriteValue(b, Memory[b] + (ushort)((Memory[a] + EX) & 0xFFFF))) break;
                     EX = (ushort)(newEX & 0xFFFF);
                     break;
                 case 0x1B: // SBX
                     ConsumeCycle(2);
                     newEX = (((Memory[b] + EX) & 0xFFFF) - Memory[a]) >> 16;
-                    Memory[b] += (ushort)((EX - Memory[a]) & 0xFFFF);
+                    if (WriteValue(b, Memory[b] + (ushort)((EX - Memory[a]) & 0xFFFF))) break;
                     EX = (ushort)(newEX & 0xFFFF);
                     break;
                 case 0x1E: // STI
                     ConsumeCycle(1);
-                    Memory[b] = Memory[a];
+                    if (WriteValue(b, Memory[a])) break;
                     Memory[(int)Registers.I]++;
                     Memory[(int)Registers.J]++;
                     break;
                 case 0x1F: // STJ
                     ConsumeCycle(1);
-                    Memory[b] = Memory[a];
+                    if (WriteValue(b, Memory[a])) break;
                     Memory[(int)Registers.I]--;
                     Memory[(int)Registers.J]--;
                     break;
@@ -295,63 +316,97 @@ namespace dcpu16.Emulator
                 return;
             }
 
-            switch (opCode)
+            // executing special instruction that is not JSR or INT
+            if (ProtectedMode && opCode != 1 && opCode != 8)
             {
-                case 0x01: // JSR
-                    ConsumeCycle(2);
-                    Memory[--SP] = PC;
-                    PC = Memory[operand];
-                    break;
-                case 0x08: // INT
-                    ConsumeCycle(3);
-                    TriggerInterrupt(Memory[operand]);
-                    break;
-                case 0x09: // IAG
-                    Memory[operand] = IA;
-                    break;
-                case 0x0A: // IAS
-                    IA = Memory[operand];
-                    break;
-                case 0x0B: // RFI
-                    ConsumeCycle(2);
-                    InterruptQueueingEnabled = false;
-                    A = Memory[SP++]; // pop A
-                    PC = Memory[SP++]; // pop PC
-                    break;
-                case 0x0C: // IAQ
-                    ConsumeCycle(1);
-                    if (Memory[operand] != 0)
-                        InterruptQueueingEnabled = true;
-                    else
+                ProtectedModeFault();
+            }
+            else
+            {
+                switch (opCode)
+                {
+                    case 0x01: // JSR
+                        ConsumeCycle(2);
+                        if (WriteValue(--SP, PC)) break;
+                        PC = Memory[operand];
+                        break;
+                    case 0x08: // INT
+                        ConsumeCycle(3);
+                        TriggerInterrupt(Memory[operand]);
+                        break;
+                    case 0x09: // IAG
+                        Memory[operand] = IA;
+                        break;
+                    case 0x0A: // IAS
+                        IA = Memory[operand];
+                        break;
+                    case 0x0B: // RFI
+                        ConsumeCycle(2);
                         InterruptQueueingEnabled = false;
-                    break;
-                case 0x10: // HWN
-                    ConsumeCycle(1);
-                    Memory[operand] = 0;
-                    break;
-                case 0x11: // HWQ
-                    ConsumeCycle(3);
-                    A = 0;
-                    B = 0;
-                    C = 0;
-                    X = 0;
-                    Y = 0;
-                    break;
-                case 0x12: // HWI
-                    ConsumeCycle(3);
-                    int hardwareNumber = Memory[operand];
-                    if (hardwareNumber >= 0 && hardwareNumber < Devices.Length)
-                        Devices[hardwareNumber].Interrupt(this);
-                    break;
-                default: // unknown special instruction
-                    Halted = true;
-                    if (instruction != 0)
-                        Console.WriteLine($"\nUnknown special instruction, op code: 0x{opCode.ToString("X2")}");
-                    break;
+                        A = Memory[SP++]; // pop A
+                        PC = Memory[SP++]; // pop PC
+                        break;
+                    case 0x0C: // IAQ
+                        ConsumeCycle(1);
+                        if (Memory[operand] != 0)
+                            InterruptQueueingEnabled = true;
+                        else
+                            InterruptQueueingEnabled = false;
+                        break;
+                    case 0x10: // HWN
+                        ConsumeCycle(1);
+                        Memory[operand] = 0;
+                        break;
+                    case 0x11: // HWQ
+                        ConsumeCycle(3);
+                        A = 0;
+                        B = 0;
+                        C = 0;
+                        X = 0;
+                        Y = 0;
+                        break;
+                    case 0x12: // HWI
+                        ConsumeCycle(3);
+                        int hardwareNumber = Memory[operand];
+                        if (hardwareNumber >= 0 && hardwareNumber < Devices.Length)
+                            Devices[hardwareNumber].Interrupt(this);
+                        break;
+                    default: // unknown special instruction
+                        Halted = true;
+                        if (instruction != 0)
+                            Console.WriteLine($"\nUnknown special instruction, op code: 0x{opCode.ToString("X2")}");
+                        break;
+                }
             }
 
             if (InstructionsToSkip == 0)
                 PostInstruction();
+        }
+
+        private void ProtectedModeFault()
+        {
+            A = 0x5346;
+            PC = IA;
+            ProtectedMode = false;
+            InterruptQueueingEnabled = true;
+        }
+        
+        private bool WriteValue(int address, ushort value)
+        {
+            if (ProtectedMode && address < PA)
+            {
+                // invalid write
+                ProtectedModeFault();
+                return true;
+            }
+
+            Memory[address] = value;
+            return false;
+        }
+
+        private bool WriteValue(int address, int value)
+        {
+            return WriteValue(address, (ushort)(value & 0xFFFF));
         }
 
         private void TriggerInterrupt(ushort message)
@@ -367,8 +422,9 @@ namespace dcpu16.Emulator
 
                 InterruptQueueingEnabled = true;
 
-                Memory[--SP] = PC;
-                Memory[--SP] = A;
+                if (WriteValue(--SP, PC) || WriteValue(--SP, PC))
+                    return;
+                ProtectedMode = false;
                 PC = IA;
                 A = message;
             }
@@ -391,7 +447,7 @@ namespace dcpu16.Emulator
             int code = (instruction >> 10) & 0x3F;
             if (code == 0x18)
             {
-                return InstructionsToSkip > 0 ? SP + 1 : SP++;
+                return InstructionsToSkip > 0 ? SP : SP++;
             }
             else if (code > 0x1F)
             {
@@ -466,19 +522,20 @@ namespace dcpu16.Emulator
         public void DumpRegisters()
         {
             Console.WriteLine("===== DCPU-16 register dump =====");
-            Console.WriteLine($"    Hex        Unsigned Signed");
-            Console.WriteLine($"A = {A.ToString("X4")}\t{A}\t{(short)A}");
-            Console.WriteLine($"B = {B.ToString("X4")}\t{B}\t{(short)B}");
-            Console.WriteLine($"C = {C.ToString("X4")}\t{C}\t{(short)C}");
-            Console.WriteLine($"X = {X.ToString("X4")}\t{X}\t{(short)X}");
-            Console.WriteLine($"Y = {Y.ToString("X4")}\t{Y}\t{(short)Y}");
-            Console.WriteLine($"Z = {Z.ToString("X4")}\t{Z}\t{(short)Z}");
-            Console.WriteLine($"I = {I.ToString("X4")}\t{I}\t{(short)I}");
-            Console.WriteLine($"J = {J.ToString("X4")}\t{J}\t{(short)J}");
+            Console.WriteLine($"     Hex       Unsigned Signed");
+            Console.WriteLine($"A =  {A.ToString("X4")}\t{A}\t{(short)A}");
+            Console.WriteLine($"B =  {B.ToString("X4")}\t{B}\t{(short)B}");
+            Console.WriteLine($"C =  {C.ToString("X4")}\t{C}\t{(short)C}");
+            Console.WriteLine($"X =  {X.ToString("X4")}\t{X}\t{(short)X}");
+            Console.WriteLine($"Y =  {Y.ToString("X4")}\t{Y}\t{(short)Y}");
+            Console.WriteLine($"Z =  {Z.ToString("X4")}\t{Z}\t{(short)Z}");
+            Console.WriteLine($"I =  {I.ToString("X4")}\t{I}\t{(short)I}");
+            Console.WriteLine($"J =  {J.ToString("X4")}\t{J}\t{(short)J}");
             Console.WriteLine($"PC = {PC.ToString("X4")}\t{PC}\t{(short)PC}");
             Console.WriteLine($"SP = {SP.ToString("X4")}\t{SP}\t{(short)SP}");
             Console.WriteLine($"EX = {EX.ToString("X4")}\t{EX}\t{(short)EX}");
             Console.WriteLine($"IA = {IA.ToString("X4")}\t{IA}\t{(short)IA}");
+            Console.WriteLine($"PA = {PA.ToString("X4")}\t{PA}\t{(short)PA}");
             Console.WriteLine("=================================");
         }
 
