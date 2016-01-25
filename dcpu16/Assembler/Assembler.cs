@@ -256,7 +256,7 @@ namespace dcpu16.Assembler
                     CurrentErrors.Add($"Invalid operand: {original}");
                     return Tuple.Create(0, -1);
                 }
-                return Tuple.Create(0x1A, -1);
+                return Tuple.Create(0x1A, number);
             }
             else if (operand == "PUSH")
             {
