@@ -58,11 +58,15 @@ namespace dcpu16.Assembler
             switch (opCode)
             {
                 case 0x01: return $"JSR {operand}";
+                case 0x02: return $"PAG {operand}";
+                case 0x03: return $"PAS {operand}";
+                case 0x04: return $"EPM {operand}";
                 case 0x08: return $"INT {operand}";
                 case 0x09: return $"IAG {operand}";
                 case 0x0A: return $"IAS {operand}";
                 case 0x0B: return $"RFI {operand}";
                 case 0x0C: return $"IAQ {operand}";
+                case 0x0D: return $"RPI {operand}";
                 case 0x10: return $"HWN {operand}";
                 case 0x11: return $"HWQ {operand}";
                 case 0x12: return $"HWI {operand}";
