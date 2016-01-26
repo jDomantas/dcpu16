@@ -191,6 +191,15 @@ namespace dcpu16.Assembler
                     }
                 }
             }
+            else if (LabelValues.ContainsKey(data.ToUpper()))
+            {
+                MemoryDump.Add((ushort)(LabelValues[data.ToUpper()] & 0xFFFF));
+            }
+            else if (IsValidName(data.ToUpper()))
+            {
+                AddForwardLink(data.ToUpper(), MemoryDump.Count);
+                MemoryDump.Add(0);
+            }
             else
             {
                 // number
