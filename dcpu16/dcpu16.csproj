@@ -49,7 +49,15 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assembler\Assembler.cs" />
+    <Compile Include="Assembler\Definition.cs" />
     <Compile Include="Assembler\Disassembler.cs" />
+    <Compile Include="Assembler\Error.cs" />
+    <Compile Include="Assembler\LabelDefinition.cs" />
+    <Compile Include="Assembler\LineOfCode.cs" />
+    <Compile Include="Assembler\MacroDefinition.cs" />
+    <Compile Include="Assembler\Preprocessor.cs" />
+    <Compile Include="Assembler\Token.cs" />
+    <Compile Include="Assembler\PreprocessorTokenManager.cs" />
     <Compile Include="Emulator\Dcpu.cs" />
     <Compile Include="Hardware\Clock\Clock.cs" />
     <Compile Include="Hardware\FloppyDisk\Floppy.cs" />
@@ -72,6 +80,7 @@
     </Compile>
     <Compile Include="Hardware\SPED\Vector.cs" />
     <Compile Include="Hardware\SPED\ViewMatrix.cs" />
+    <Compile Include="InstructionDefinition.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

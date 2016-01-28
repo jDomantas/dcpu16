@@ -10,6 +10,7 @@ using NDesk.Options;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace dcpu16
@@ -83,31 +84,36 @@ namespace dcpu16
 
         static ushort[] AssembleSource(string path)
         {
-            string[] lines = null;
+            Assembler.Assembler asm = new Assembler.Assembler();
             try
             {
-                lines = File.ReadAllLines(path);
+                asm.AssembleFile(path);
             }
-            catch (Exception e)
+            catch (FileNotFoundException e)
             {
                 Console.WriteLine($"Failed to read file: {path}");
                 Console.WriteLine(e.Message);
                 Environment.Exit(0);
             }
 
-            Assembler.Assembler asm = new Assembler.Assembler();
-            asm.AssembleCode(lines);
-            bool haveErrors = false;
-            foreach (string error in asm.GetErrors())
+            if (asm.GetErrors().Any())
+                Console.WriteLine("Errors:");
+            else
+                Console.WriteLine("Assembled successfuly");
+
+            foreach (var err in asm.GetErrors())
             {
-                Console.WriteLine($"Error: {error}");
-                haveErrors = true;
+                Console.WriteLine($"In file '{err.SourceLine.SourceFile}', line {err.SourceLine.SourceLineNumber}");
+                Console.WriteLine($"  {err.SourceLine.Value.Replace('\t', ' ')}");
+                Console.WriteLine($"{new string(' ', err.Column + 2)}^");
+                Console.WriteLine($"  {err.Message}");
+                Console.WriteLine();
             }
 
-            if (haveErrors)
-                Environment.Exit(0);
+            Console.ReadKey();
+            Environment.Exit(0);
 
-            return asm.GetMemoryDump();
+            return null;
         }
 
         static void RunEmulator(ushort[] memoryImage, List<string> hardware, bool dumpregs, int radiation, int clock)
