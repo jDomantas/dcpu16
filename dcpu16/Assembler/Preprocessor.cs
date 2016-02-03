@@ -19,9 +19,12 @@ namespace dcpu16.Assembler
         private Stack<int> FileStack;
 
         private int CurrentFile { get { return FileStack.Peek(); } }
+        private int ParentFile { get { return FileStack.ElementAt(1); } }
         private Dictionary<string, LabelDefinition> LocalLabels { get { return FileLocalLabels[CurrentFile]; } }
+        private Dictionary<string, LabelDefinition> ParentLabels { get { return FileLocalLabels[ParentFile]; } }
         private Dictionary<string, Definition> LocalDefinitions { get { return FileLocalDefinitions.Peek(); } }
 
+        private HashSet<int> MacroFiles;
         private HashSet<string> IncludedFiles;
         public List<Error> Errors { get; private set; }
 
@@ -41,6 +44,7 @@ namespace dcpu16.Assembler
             FileLocalLabels = new Dictionary<int, Dictionary<string, LabelDefinition>>();
             FileLocalDefinitions = new Stack<Dictionary<string, Definition>>();
             FileStack = new Stack<int>();
+            MacroFiles = new HashSet<int>();
         }
 
         public void ProcessFile(string filename)
@@ -49,10 +53,10 @@ namespace dcpu16.Assembler
             Preprocess();
             ResolveLabelScopes();
 
-            // foreach (Token t in OutputTokenList)
-            //     System.Console.Write($"{t.ToString(true)} ");
-            // 
-            // System.Console.ReadKey();
+             foreach (Token t in OutputTokenList)
+                 System.Console.Write($"{t.ToString(true)} ");
+             
+             System.Console.ReadKey();
         }
         
         private void IncludeFile(string filename, Token includeDirective)
@@ -190,9 +194,13 @@ namespace dcpu16.Assembler
                         if (LocalLabels.ContainsKey(token.TextValue))
                             // referencing local label
                             token.ChangeNumber(CurrentFile);
+                        else if (MacroFiles.Contains(CurrentFile) &&
+                            ParentLabels.ContainsKey(token.TextValue))
+                            // referencing parent label from macro
+                            token.ChangeNumber(ParentFile);
                         else if (
-                            !GlobalLabels.ContainsKey(token.TextValue) && 
-                            !Instructions.ContainsKey(token.TextValue) && 
+                            !GlobalLabels.ContainsKey(token.TextValue) &&
+                            !Instructions.ContainsKey(token.TextValue) &&
                             !BuiltinKeywords.Contains(token.TextValue))
                             // referencing not existing label
                             Errors.Add(new Error("label not found", token));
@@ -577,7 +585,7 @@ namespace dcpu16.Assembler
             }
 
             // insert macro body
-            Tokens.InsertMacro(macro.Replacement, token);
+            MacroFiles.Add(Tokens.InsertMacro(macro.Replacement, token));
             // should be at the start of new (implicit) file
             System.Diagnostics.Debug.Assert(Tokens.Peek.Type == Token.TokenType.StartOfFile);
 
