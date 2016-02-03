@@ -101,6 +101,7 @@ namespace dcpu16.Assembler
                 ["HLT"] = new InstructionDefinition(0, InstructionDefinition.Params.None),
 
                 ["DAT"] = new InstructionDefinition(0, InstructionDefinition.Params.Data),
+                ["DUP"] = new InstructionDefinition(0, InstructionDefinition.Params.DuplicatedData),
             };
 
             Builtins = new HashSet<string>()
@@ -149,6 +150,9 @@ namespace dcpu16.Assembler
 
             foreach (var err in Errors)
                 yield return err;
+
+            if (MemoryDump.Count > 65536)
+                yield return new Error($"memory image larger than 65536 words, size: {MemoryDump.Count}", null, 0);
 
             yield break;
         }
@@ -265,6 +269,69 @@ namespace dcpu16.Assembler
                             return;
                         }
                     }
+                case InstructionDefinition.Params.DuplicatedData:
+                    string dupString = null, dupPstring = null;
+                    ushort dupNum = 0;
+                    switch (Tokens.Peek().Type)
+                    {
+                        case Token.TokenType.String:
+                            dupString = Tokens.Peek().TextValue;
+                            Tokens.Dequeue();
+                            break;
+
+                        case Token.TokenType.PackedString:
+                            dupPstring = Tokens.Peek().TextValue;
+                            Tokens.Dequeue();
+                            break;
+
+                        default:
+                            var value = ReadSum(false, false, false);
+                            if (value == null)
+                            {
+                                SkipLine();
+                                return;
+                            }
+                            dupNum = value.Sum;
+                            break;
+                    }
+                    if (Tokens.Peek().Type != Token.TokenType.Punctuation || Tokens.Peek().CharValue != ',')
+                    {
+                        Errors.Add(new Error("expected comma", Tokens.Peek()));
+                        SkipLine();
+                        return;
+                    }
+                    Tokens.Dequeue();
+                    var dupCount = ReadSum(false, false, false);
+                    if (dupCount == null)
+                    {
+                        SkipLine();
+                        return;
+                    }
+                    else if (Tokens.Peek().Type != Token.TokenType.EndOfLine)
+                    {
+                        Errors.Add(new Error("expected end of line", Tokens.Peek()));
+                        SkipLine();
+                        return;
+                    }
+                    Tokens.Dequeue();
+                    if (dupString != null)
+                    {
+                        for (int j = 0; j < dupCount.Sum; j++)
+                            for (int i = 0; i < dupString.Length; i++)
+                                MemoryDump.Add((ushort)dupString[i]);
+                    }
+                    else if (dupPstring != null)
+                    {
+                        for (int j = 0; j < dupCount.Sum; j++)
+                            for (int i = 0; i < dupPstring.Length; i += 2)
+                                MemoryDump.Add((ushort)((ushort)dupPstring[i] + (ushort)(i + 1 < dupPstring.Length ? (dupPstring[i] << 8) : 0)));
+                    }
+                    else
+                    {
+                        for (int j = 0; j < dupCount.Sum; j++)
+                            MemoryDump.Add(dupNum);
+                    }
+                    break;
                 case InstructionDefinition.Params.OnlyA:
                     var operand = ReadOperand(true);
                     if (Tokens.Peek().Type != Token.TokenType.EndOfLine)

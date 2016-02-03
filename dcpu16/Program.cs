@@ -101,10 +101,15 @@ namespace dcpu16
                 Console.WriteLine("Errors:");
                 foreach (var err in asm.GetErrors())
                 {
-                    Console.WriteLine($"In file '{err.SourceLine.SourceFile}', line {err.SourceLine.SourceLineNumber}");
-                    Console.WriteLine($"  {err.SourceLine.Value.Replace('\t', ' ')}");
-                    Console.WriteLine($"{new string(' ', err.Column + 2)}^");
-                    Console.WriteLine($"  {err.Message}");
+                    if (err.SourceLine != null)
+                    {
+                        Console.WriteLine($"In file '{err.SourceLine.SourceFile}', line {err.SourceLine.SourceLineNumber}");
+                        Console.WriteLine($"  {err.SourceLine.Value.Replace('\t', ' ')}");
+                        Console.WriteLine($"{new string(' ', err.Column + 2)}^");
+                        Console.WriteLine($"  {err.Message}");
+                    }
+                    else
+                        Console.WriteLine(err.Message);
                     Console.WriteLine();
                 }
                 Environment.Exit(0);
