@@ -167,7 +167,7 @@ namespace dcpu16.Assembler
                 }
             }
 
-            yield return new Token(TokenType.EndOfLine, line, 0);
+            yield return new Token(TokenType.EndOfLine, line, line.Value.Length);
             yield break;
         }
         
@@ -191,12 +191,12 @@ namespace dcpu16.Assembler
                     case '7': if (b < 8) return -1; acc += 7; break;
                     case '8': if (b < 9) return -1; acc += 8; break;
                     case '9': if (b < 10) return -1; acc += 9; break;
-                    case 'a': case 'A': if (b < 11) return -1; acc += 1; break;
-                    case 'b': case 'B': if (b < 12) return -1; acc += 1; break;
-                    case 'c': case 'C': if (b < 13) return -1; acc += 1; break;
-                    case 'd': case 'D': if (b < 14) return -1; acc += 1; break;
-                    case 'e': case 'E': if (b < 15) return -1; acc += 1; break;
-                    case 'f': case 'F': if (b < 16) return -1; acc += 1; break;
+                    case 'a': case 'A': if (b < 11) return -1; acc += 10; break;
+                    case 'b': case 'B': if (b < 12) return -1; acc += 11; break;
+                    case 'c': case 'C': if (b < 13) return -1; acc += 12; break;
+                    case 'd': case 'D': if (b < 14) return -1; acc += 13; break;
+                    case 'e': case 'E': if (b < 15) return -1; acc += 14; break;
+                    case 'f': case 'F': if (b < 16) return -1; acc += 15; break;
                 }
             }
 
@@ -253,8 +253,8 @@ namespace dcpu16.Assembler
                         current == '\\')
                         result.Append(current);
                     else if (current == '0') result.Append('\0');
-                    else if (current == '\n') result.Append((char)10);
-                    else if (current == '\t') result.Append((char)9);
+                    else if (current == 'n') result.Append((char)10);
+                    else if (current == 't') result.Append((char)9);
                     else return new Token(TokenType.Error, $"invalid escape sequence: \\{current}", origin, position);
 
                     escaping = false;

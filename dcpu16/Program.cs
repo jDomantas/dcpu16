@@ -91,29 +91,28 @@ namespace dcpu16
             }
             catch (FileNotFoundException e)
             {
-                Console.WriteLine($"Failed to read file: {path}");
+                Console.WriteLine($"Failed to assemble file: {path}");
                 Console.WriteLine(e.Message);
                 Environment.Exit(0);
             }
 
             if (asm.GetErrors().Any())
+            {
                 Console.WriteLine("Errors:");
+                foreach (var err in asm.GetErrors())
+                {
+                    Console.WriteLine($"In file '{err.SourceLine.SourceFile}', line {err.SourceLine.SourceLineNumber}");
+                    Console.WriteLine($"  {err.SourceLine.Value.Replace('\t', ' ')}");
+                    Console.WriteLine($"{new string(' ', err.Column + 2)}^");
+                    Console.WriteLine($"  {err.Message}");
+                    Console.WriteLine();
+                }
+                Environment.Exit(0);
+            }
             else
                 Console.WriteLine("Assembled successfuly");
-
-            foreach (var err in asm.GetErrors())
-            {
-                Console.WriteLine($"In file '{err.SourceLine.SourceFile}', line {err.SourceLine.SourceLineNumber}");
-                Console.WriteLine($"  {err.SourceLine.Value.Replace('\t', ' ')}");
-                Console.WriteLine($"{new string(' ', err.Column + 2)}^");
-                Console.WriteLine($"  {err.Message}");
-                Console.WriteLine();
-            }
-
-            Console.ReadKey();
-            Environment.Exit(0);
-
-            return null;
+            
+            return asm.GetMemoryDump();
         }
 
         static void RunEmulator(ushort[] memoryImage, List<string> hardware, bool dumpregs, int radiation, int clock)

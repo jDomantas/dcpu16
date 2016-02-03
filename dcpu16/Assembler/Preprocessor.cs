@@ -48,6 +48,11 @@ namespace dcpu16.Assembler
             IncludeFile(filename, null);
             Preprocess();
             ResolveLabelScopes();
+
+            // foreach (Token t in OutputTokenList)
+            //     System.Console.Write($"{t.ToString(true)} ");
+            // 
+            // System.Console.ReadKey();
         }
         
         private void IncludeFile(string filename, Token includeDirective)
@@ -118,7 +123,8 @@ namespace dcpu16.Assembler
                     case Token.TokenType.Punctuation:
                         if (Tokens.Peek.CharValue == ';')
                         {
-                            SkipLine(true);
+                            allowMacroExpansion = true;
+                            OutputTokenList.Add(SkipLine(true));
                             break;
                         }
                         else
@@ -197,7 +203,7 @@ namespace dcpu16.Assembler
             OutputTokenList.RemoveAll(t => t.Type == Token.TokenType.StartOfFile || t.Type == Token.TokenType.EndOfFile);
         }
 
-        private void SkipLine(bool throwErrors)
+        private Token SkipLine(bool throwErrors)
         {
             while (Tokens.Peek.Type != Token.TokenType.EndOfLine)
             {
@@ -234,7 +240,9 @@ namespace dcpu16.Assembler
             }
 
             // skip end of line token
+            var endOfLine = Tokens.Peek;
             Tokens.Next();
+            return endOfLine;
         }
 
         private void HandleDirective()
