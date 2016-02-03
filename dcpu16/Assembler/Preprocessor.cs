@@ -53,10 +53,10 @@ namespace dcpu16.Assembler
             Preprocess();
             ResolveLabelScopes();
 
-             foreach (Token t in OutputTokenList)
-                 System.Console.Write($"{t.ToString(true)} ");
-             
-             System.Console.ReadKey();
+            // foreach (Token t in OutputTokenList)
+            //     System.Console.Write($"{t.ToString(true)} ");
+            // 
+            // System.Console.ReadKey();
         }
         
         private void IncludeFile(string filename, Token includeDirective)
