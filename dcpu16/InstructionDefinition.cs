@@ -2,7 +2,7 @@
 {
     class InstructionDefinition
     {
-        public enum Params { Two, OnlyA, None, Data }
+        public enum Params { Two, OnlyA, None, Data, DuplicatedData }
 
         public readonly Params Parameters;
         public readonly ushort OpCode;
