@@ -151,7 +151,7 @@ namespace dcpu16.Assembler
             foreach (var err in Errors)
                 yield return err;
 
-            if (MemoryDump.Count > 65536)
+            if (MemoryDump != null && MemoryDump.Count > 65536)
                 yield return new Error($"memory image larger than 65536 words, size: {MemoryDump.Count}", null, 0);
 
             yield break;
