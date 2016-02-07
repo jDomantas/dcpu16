@@ -77,7 +77,6 @@ namespace dcpu16.Assembler
                 lines[i] = new LineOfCode(code[i], filename, i + 1);
 
             int currentFileID = Tokens.InsertFile(lines);
-            FileStack.Push(currentFileID);
         }
 
         private void Preprocess()
