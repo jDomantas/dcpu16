@@ -372,7 +372,7 @@ namespace dcpu16.Emulator
                         break;
                     case 0x10: // HWN
                         ConsumeCycle(1);
-                        Memory[operand] = 0;
+                        Memory[operand] = (ushort)Devices.Length;
                         break;
                     case 0x11: // HWQ
                         ConsumeCycle(3);
