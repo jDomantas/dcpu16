@@ -376,11 +376,22 @@ namespace dcpu16.Emulator
                         break;
                     case 0x11: // HWQ
                         ConsumeCycle(3);
-                        A = 0;
-                        B = 0;
-                        C = 0;
-                        X = 0;
-                        Y = 0;
+                        if (Devices.Length <= Memory[operand])
+                        {
+                            A = 0;
+                            B = 0;
+                            C = 0;
+                            X = 0;
+                            Y = 0;
+                        }
+                        else
+                        {
+                            A = (ushort)(Devices[Memory[operand]].GetHardwareID() & 0xFFFF);
+                            B = (ushort)((Devices[Memory[operand]].GetHardwareID() >> 16) & 0xFFFF);
+                            X = (ushort)(Devices[Memory[operand]].GetManufacturer() & 0xFFFF);
+                            Y = (ushort)((Devices[Memory[operand]].GetManufacturer() >> 16) & 0xFFFF);
+                            C = Devices[Memory[operand]].GetHardwareVersion();
+                        }
                         break;
                     case 0x12: // HWI
                         ConsumeCycle(3);
