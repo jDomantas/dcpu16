@@ -538,6 +538,10 @@ namespace dcpu16.Assembler
                             // same as getting end of line
                             goto case Token.TokenType.EndOfLine;
                         }
+                        else
+                        {
+                            goto default;
+                        }
                         break;
                     case Token.TokenType.EndOfLine:
                         // if parentheses are not needed, then done
